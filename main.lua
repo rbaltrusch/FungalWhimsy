@@ -8,12 +8,19 @@ require "src/tilemap"
 require "src/camera"
 require "src/collision"
 require "src/timer"
+require "src/sound_collection"
 
 local function get_player_rect(tiles)
     local player_tiles = TileMap.get_tile_rects(tiles["player"].tiles, TILE_SIZE)
     for pos, tile in pairs(player_tiles) do
         return tile.rect
     end
+end
+
+local function load_sound(filename, volume)
+    local sound = love.audio.newSource(filename, "static")
+    sound:setVolume(volume or 1)
+    return sound
 end
 
 function love.load()
@@ -35,10 +42,7 @@ function love.load()
     -- music:setLooping(true)
     -- music:play()
 
-    local walk_sound = love.audio.newSource("assets/walk.wav", "static")
-    walk_sound:setVolume(0.2)
-
-    tileset = SpriteSheet.load_sprite_sheet("assets/quick_tilesheet.png", TILE_SIZE, TILE_SIZE)
+    tileset = SpriteSheet.load_sprite_sheet("assets/quick_tilesheet.png", TILE_SIZE, TILE_SIZE, 1)
     tilemap = require "assets/testmap"
     collision_map = TileMap.construct_collision_map(tilemap, "terrain")
     tiles = TileMap.construct_tiles(tilemap, tileset)
@@ -55,15 +59,21 @@ function love.load()
         size= {x = 16, y = 22},
         tile_size=TILE_SIZE,
         walk_animation=Animation.construct(
-            SpriteSheet.load_sprite_sheet("assets/player_walk.png", 17, 22), 0.1
+            SpriteSheet.load_sprite_sheet("assets/player_walk.png", 17, 22, 1), 0.1
         ),
         walk_left_animation=Animation.construct(
-            SpriteSheet.load_sprite_sheet("assets/player_walk_left.png", 17, 22), 0.1
+            SpriteSheet.load_sprite_sheet("assets/player_walk_left.png", 17, 22, 1), 0.1
         ),
         idle_animation=Animation.construct(
-            SpriteSheet.load_sprite_sheet("assets/player_idle.png", 17, 22), 0.1
+            SpriteSheet.load_sprite_sheet("assets/player_idle.png", 17, 22, 1), 0.1
         ),
-        walk_sound=walk_sound,
+        walk_sound=load_sound("assets/walk.wav"),
+        fall_sound=load_sound("assets/fall.wav"),
+        land_sound=load_sound("assets/land.wav"),
+        jump_sound=SoundCollection.construct({
+            load_sound("assets/jump.wav", 0.3),
+            load_sound("assets/jump2.wav", 0.3),
+        }),
     }
     player:move(1, 0)
     player:update_collisions(tiles["terrain"])
@@ -138,6 +148,12 @@ local function draw()
         -- respawn
     end
 
+    -- local anim = tileset -- player.walk_animation
+    -- for x = 1, anim.size do
+    --     local transform = love.math.newTransform(player.x - camera.total_x - 100 + x * 14, player.y - camera.total_y + 50)
+    --     love.graphics.draw(anim.image, anim.quads[3], transform)
+    -- end
+
     if DEBUG_ENABLED then
         love.graphics.print(string.format("fps: %s", math.floor(love.timer.getFPS())), 0, 0, 0, 0.5, 0.5)
     end
@@ -174,7 +190,7 @@ function love.keypressed(key)
     elseif key == "space" then
         player:jump()
     elseif key == "c" then
-        camera.enabled = not camera.enabled
+        -- camera.enabled = not camera.enabled
     end
 end
 

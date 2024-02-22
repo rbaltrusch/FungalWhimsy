@@ -17,7 +17,10 @@ function Player.construct(args)
         coyote_timer = args.coyote_timer,
         image = love.graphics.newImage(args.image_path),
         walk_sound = args.walk_sound,
-        death_sound = args.death_sound,
+        jump_sound = args.jump_sound,
+        fall_sound = args.fall_sound,
+        land_sound = args.land_sound,
+        death_sound = args.death_sound,  -- TODO
         respawn_sound = args.respawn_sound, -- TODO
         unlock_sound = args.unlock_sound, -- TODO
         speed_x = 0,
@@ -37,12 +40,18 @@ function Player.construct(args)
         jump_counter = 0,
         dead = false,
         EDGE_LENIENCE = 7,  -- how forgiving terrain edge collisions are
-        GRAVITY = 145
+        GRAVITY = 145,
+        airborne_time = 0,
+        MIN_AIRBORNE_TIME = 0.1,
     }
 
     function player.move(self, x, y)
         if x == 0 and y == 0 or self.dead then
             return
+        end
+
+        if not self.airborne and not self.walk_sound:isPlaying() then
+            self.walk_sound:play()
         end
 
         if not self:get_animation().ongoing then
@@ -56,9 +65,6 @@ function Player.construct(args)
         self.looking_right = false
         self.walk_animation:stop()
         self.speed_x = - self.SPEED
-        if not self.airborne and not self.walk_sound:isPlaying() then
-            self.walk_sound:play()
-        end
         print(self.speed_x, self.speed_y)
     end
 
@@ -66,9 +72,6 @@ function Player.construct(args)
         self.looking_right = true
         self.walk_left_animation:stop()
         self.speed_x = self.SPEED
-        if not self.airborne and not self.walk_sound:isPlaying() then
-            self.walk_sound:play()
-        end
         print(self.speed_x, self.speed_y)
     end
 
@@ -77,6 +80,7 @@ function Player.construct(args)
             return
         end
 
+        self.jump_sound:play()
         self.jump_counter = 0
         -- self.speed_y = - self.SPEED * 8
         self.speed_y = - self.JUMP_SPEED
@@ -145,8 +149,13 @@ function Player.construct(args)
         self:update_jump()
         self:update_gravity()
 
-        if self.walk_sound:isPlaying() and self.speed_x == 0 or self.speed_y then
+        if self.walk_sound:isPlaying() and self.speed_x == 0 or self.speed_y ~= 0 then
             self.walk_sound:stop()
+        end
+
+        if self.airborne then
+            self.airborne_time = self.airborne_time + dt
+            self.fall_sound:setVolume(self.airborne_time)
         end
 
         self.previous_x = self.x
@@ -192,17 +201,25 @@ function Player.construct(args)
 
     function player.update_collisions(self, tiles)
         local x, y = unpack(self:get_current_bottom_tile())
+        self:_update_fall_by_gravity(tiles, x, y)
+        self:_update_collisions(tiles, x, y - 1)  -- top
+        self:_update_collisions(tiles, x, y)  -- bottom
+    end
+
+    function player._update_fall_by_gravity(self, tiles, x, y)
         -- handle gravity start by falling due to no floor
         local floor = tiles:get(x, y)
+        local airborne = self.airborne
         if floor == nil then
             self.airborne = true
             if not self.coyote_timer.ongoing then
                 self.coyote_timer:start()
             end
+            if not airborne then
+                self.fall_sound:play()
+            end
             self:get_animation():stop()
         end
-        self:_update_collisions(tiles, x, y - 1)  -- top
-        self:_update_collisions(tiles, x, y)  -- bottom
     end
 
     function player._update_collisions(self, tiles, x, y)
@@ -225,34 +242,45 @@ function Player.construct(args)
                 --     goto continue
                 -- end
 
-                if Collision.colliding(player_rect, tile_rect) then
-                    local speed_x = self.x - self.previous_x
-                    local speed_y = self.y - self.previous_y
-                    if speed_x ~= 0 then
-                        print("collide x")
-                        local y_overlap = Collision.get_y_overlap(player_rect, tile_rect)
-                        local neighbour = tiles:get(x + x_offs, y + y_offs + (y_overlap > 0 and -1 or 1))
-                        if math.abs(y_overlap) < self.EDGE_LENIENCE and neighbour == nil then
-                            self.y = self.y - y_overlap
-                        else
-                            self.x = tile_rect.x1 + self.TILE_SIZE * (speed_x > 0 and -1 or 1)
-                        end
+                if not Collision.colliding(player_rect, tile_rect) then
+                    goto continue
+                end
+
+                local speed_x = self.x - self.previous_x
+                local speed_y = self.y - self.previous_y
+                if speed_x ~= 0 then
+                    print("collide x")
+                    local y_overlap = Collision.get_y_overlap(player_rect, tile_rect)
+                    local neighbour = tiles:get(x + x_offs, y + y_offs + (y_overlap > 0 and -1 or 1))
+                    if math.abs(y_overlap) < self.EDGE_LENIENCE and neighbour == nil then
+                        self.y = self.y - y_overlap
+                    else
+                        self.x = tile_rect.x1 + self.TILE_SIZE * (speed_x > 0 and -1 or 1)
                     end
-                    if speed_y ~= 0 then
-                        print("collide y")
-                        local x_overlap = Collision.get_x_overlap(player_rect, tile_rect)
-                        local neighbour = tiles:get(x + x_offs + (x_overlap > 0 and -1 or 1), y + y_offs)
-                        if math.abs(x_overlap) < self.EDGE_LENIENCE and neighbour == nil then
-                            if not self.airborne then
-                                self.x = self.x - x_overlap
-                            end
-                        else
-                            -- land on ground
-                            self.y = tile_rect.y1 + (speed_y > 0 and - self.size.y  or self.TILE_SIZE)
-                            self.airborne = false
-                            self.speed_y = 0
-                            self.coyote_timer:stop()
+                end
+                if speed_y ~= 0 then
+                    print("collide y")
+                    local x_overlap = Collision.get_x_overlap(player_rect, tile_rect)
+                    local neighbour = tiles:get(x + x_offs + (x_overlap > 0 and -1 or 1), y + y_offs)
+                    if math.abs(x_overlap) < self.EDGE_LENIENCE and neighbour == nil then
+                        if not self.airborne then
+                            self.x = self.x - x_overlap
                         end
+                    else
+                        -- land on ground
+                        self.y = tile_rect.y1 + (speed_y > 0 and - self.size.y  or self.TILE_SIZE)
+                        self.airborne = false
+                        self.speed_y = 0
+                        self.coyote_timer:stop()
+                        if self.fall_sound:isPlaying() then
+                            self.fall_sound:stop()
+                        end
+                        if self.land_sound:isPlaying() then
+                            self.land_sound:stop()
+                        end
+                        self.land_sound:setVolume(math.min(1, self.airborne_time / 4))
+                        self.land_sound:play()
+                        self.airborne_time = 0
                     end
                 end
                 ::continue::
