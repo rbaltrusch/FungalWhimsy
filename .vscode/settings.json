@@ -1,0 +1,19 @@
+{
+    "Lua.runtime.version": "LuaJIT",
+    "Lua.workspace.library": [
+        "${3rd}/love2d/library"
+    ],
+    "Lua.diagnostics.globals": [
+        "player",
+        "fps",
+        "muted",
+        "tilemap",
+        "tileset",
+        "tiles",
+        "camera",
+        "shader",
+        "collision_map",
+        "entities",
+        "font",
+    ]
+}
