@@ -186,7 +186,7 @@ local function check_checkpoint_collisions()
     player_rect.y2 = player_rect.y2 + 1
     local collectibles = TileMap.get_tile_rects(tiles["checkpoints"].tiles, TILE_SIZE)
     for pos, tile in pairs(collectibles) do
-        if Collision.colliding(player_rect, tile.rect) then
+        if Collision.colliding(tile.rect, player_rect) then
             player:set_checkpoint(tile.rect.x2 - player.size.x, tile.rect.y2 - player.size.y)
         end
     end
