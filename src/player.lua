@@ -15,7 +15,7 @@ function Player.construct(args)
         size = args.size,
         jump_timer = args.jump_timer,
         coyote_timer = args.coyote_timer,
-        image = love.graphics.newImage(args.image_path),
+        image = args.image,
         walk_sound = args.walk_sound,
         jump_sound = args.jump_sound,
         fall_sound = args.fall_sound,
@@ -35,6 +35,8 @@ function Player.construct(args)
         jumping = false,
         idle = false,
         idle_timer = args.idle_timer,
+        landing_particle_system = args.landing_particle_system,
+        walking_particle_system = args.walking_particle_system,
         JUMP_DECAY = 37,  -- how fast jump speed drops
         JUMP_SPEED = 770,
         jump_counter = 0,
@@ -65,6 +67,7 @@ function Player.construct(args)
         self.looking_right = false
         self.walk_animation:stop()
         self.speed_x = - self.SPEED
+        self.walking_particle_system:start()
         print(self.speed_x, self.speed_y)
     end
 
@@ -72,6 +75,7 @@ function Player.construct(args)
         self.looking_right = true
         self.walk_left_animation:stop()
         self.speed_x = self.SPEED
+        self.walking_particle_system:start()
         print(self.speed_x, self.speed_y)
     end
 
@@ -93,6 +97,7 @@ function Player.construct(args)
     function player.stop(self)
         print("stopping")
         self.speed_x = 0
+        self.walking_particle_system:stop()
     end
 
     function player.get_animation(self)
@@ -148,6 +153,9 @@ function Player.construct(args)
         self.idle_timer:update(dt)
         self:update_jump()
         self:update_gravity()
+        self.landing_particle_system:update(dt)
+        self.walking_particle_system:update(dt)
+        self.walking_particle_system:move_to(self.x + self.size.x / 2, self.y + self.size.y)
 
         if self.walk_sound:isPlaying() and self.speed_x == 0 or self.speed_y ~= 0 then
             self.walk_sound:stop()
@@ -155,7 +163,13 @@ function Player.construct(args)
 
         if self.airborne then
             self.airborne_time = self.airborne_time + dt
-            self.fall_sound:setVolume(self.airborne_time)
+            self.landing_particle_system.max_active_time = self.airborne_time * 0.6
+            self.landing_particle_system.max_particles = math.ceil(self.airborne_time * 30)
+            local max_particle_size = math.min(math.ceil(self.airborne_time * 30), 20)
+            self.landing_particle_system.expired_predicate = function(particle)
+                return particle.size > max_particle_size or particle.alive_time > self.landing_particle_system.max_active_time
+            end
+            self.fall_sound:setVolume(math.min(1, self.airborne_time * 0.6))
         end
 
         self.previous_x = self.x
@@ -222,6 +236,23 @@ function Player.construct(args)
         end
     end
 
+    function player._land_on_ground(self)
+        self.airborne = false
+        self.speed_y = 0
+        self.coyote_timer:stop()
+        if self.fall_sound:isPlaying() then
+            self.fall_sound:stop()
+        end
+        if self.land_sound:isPlaying() then
+            self.land_sound:stop()
+        end
+        self.landing_particle_system:move_to(self.x + self.size.x / 2, self.y + self.size.y)
+        self.landing_particle_system:start()
+        self.land_sound:setVolume(math.min(1, self.airborne_time / 4))
+        self.land_sound:play()
+        self.airborne_time = 0
+    end
+
     function player._update_collisions(self, tiles, x, y)
         for x_offs = -1, 1 do
             for y_offs = -1, 1 do
@@ -269,18 +300,7 @@ function Player.construct(args)
                     else
                         -- land on ground
                         self.y = tile_rect.y1 + (speed_y > 0 and - self.size.y  or self.TILE_SIZE)
-                        self.airborne = false
-                        self.speed_y = 0
-                        self.coyote_timer:stop()
-                        if self.fall_sound:isPlaying() then
-                            self.fall_sound:stop()
-                        end
-                        if self.land_sound:isPlaying() then
-                            self.land_sound:stop()
-                        end
-                        self.land_sound:setVolume(math.min(1, self.airborne_time / 4))
-                        self.land_sound:play()
-                        self.airborne_time = 0
+                        self:_land_on_ground()
                     end
                 end
                 ::continue::
@@ -289,6 +309,9 @@ function Player.construct(args)
     end
 
     function player.render(self, camera)
+        self.landing_particle_system:draw(camera)
+        self.walking_particle_system:draw(camera)
+
         local transform = love.math.newTransform(self.x - camera.total_x, self.y - camera.total_y)
         local anim = self:get_animation()
         if anim.ongoing then

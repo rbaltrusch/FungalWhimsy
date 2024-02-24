@@ -9,6 +9,7 @@ require "src/camera"
 require "src/collision"
 require "src/timer"
 require "src/sound_collection"
+require "src/particle"
 
 local function get_player_rect(tiles)
     local player_tiles = TileMap.get_tile_rects(tiles["player"].tiles, TILE_SIZE)
@@ -46,10 +47,12 @@ function love.load()
     tilemap = require "assets/testmap"
     collision_map = TileMap.construct_collision_map(tilemap, "terrain")
     tiles = TileMap.construct_tiles(tilemap, tileset)
-    
+
+    local player_image = love.graphics.newImage("assets/player.png")
+    player_image:setFilter("nearest", "nearest")
     local player_rect = get_player_rect(tiles)
     player = Player.construct{
-        image_path="assets/player.png",
+        image=player_image,
         x=player_rect.x1,
         y=player_rect.y1,
         speed=80,
@@ -73,6 +76,32 @@ function love.load()
         jump_sound=SoundCollection.construct({
             load_sound("assets/jump.wav", 0.3),
             load_sound("assets/jump2.wav", 0.3),
+        }),
+        landing_particle_system=ParticleSystem.construct({
+            x = 0,
+            y = 0,
+            colour = Colour.construct(255, 255, 255, 0.2),
+            size = 1,
+            size_change = 2.5, -- per sec
+            spawn_chance = 100,  -- per sec
+            max_particles = 100,
+            max_active_time = 0.3,
+            speed_x_getter = function() return math.random(-20, 20) end,
+            speed_y_getter = function() return - math.random(5, 10) end,
+            expired_predicate = function(particle) return particle.size > 20 or particle.alive_time > 0.3 end
+        }),
+        walking_particle_system=ParticleSystem.construct({
+            x = 0,
+            y = 0,
+            colour = Colour.construct(255, 255, 255, 0.2),
+            size = 1,
+            size_change = 1.5, -- per sec
+            spawn_chance = 20,  -- per sec
+            max_particles = 10,
+            max_active_time = nil,
+            speed_x_getter = function() return math.random(-1, 1) end,
+            speed_y_getter = function() return - math.random(2, 3) end,
+            expired_predicate = function(particle) return particle.size > 10 or particle.alive_time > 0.25 end
         }),
     }
     player:move(1, 0)
