@@ -47,6 +47,8 @@ function Player.construct(args)
         GRAVITY = 145,
         airborne_time = 0,
         MIN_AIRBORNE_TIME = 0.1,
+        jump_height_reached = 0,
+        -- max_jump = 150
     }
 
     function player.move(self, x, y)
@@ -101,6 +103,7 @@ function Player.construct(args)
         self.speed_y = - self.JUMP_SPEED
         self.airborne = true
         self.jumping = true
+        self.jump_height_reached = 0
         self.jump_timer:start()
         print("jumping", self.speed_x, self.speed_y)
     end
@@ -190,6 +193,11 @@ function Player.construct(args)
 
         if self.stun_timer:is_expired() then
             self.stun_timer:stop()
+        end
+
+        if self.jumping then
+            self.jump_height_reached = self.jump_height_reached + self.speed_y * dt
+            print("jump height", self.jump_height_reached)
         end
 
         if not self.stun_timer.ongoing then
