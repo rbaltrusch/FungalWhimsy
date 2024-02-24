@@ -48,7 +48,7 @@ function Player.construct(args)
         airborne_time = 0,
         MIN_AIRBORNE_TIME = 0.1,
         jump_height_reached = 0,
-        -- max_jump = 150
+        max_jump_height = 36,
     }
 
     function player.move(self, x, y)
@@ -196,7 +196,12 @@ function Player.construct(args)
         end
 
         if self.jumping then
-            self.jump_height_reached = self.jump_height_reached + self.speed_y * dt
+            local old = self.jump_height_reached
+            self.jump_height_reached = old + self.speed_y * dt
+            if math.abs(self.jump_height_reached) > self.max_jump_height then
+                self.jumping = false
+                self.speed_y = - (self.max_jump_height - math.abs(old)) / dt
+            end
             print("jump height", self.jump_height_reached)
         end
 
