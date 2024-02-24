@@ -39,12 +39,14 @@ function Collision.colliding(rect1, rect2)
         (
             in_range(rect1.x1, rect2.x1, rect2.x2)
             or in_range(rect1.x2, rect2.x1, rect2.x2)
-            or rect1.x1 == rect2.x1 and rect1.x2 == rect2.x2
+            or rect1.x1 == rect2.x1 and rect1.x2 >= rect2.x2
+            or rect1.x1 <= rect2.x1 and rect1.x2 == rect2.x2
         )
         and (
             in_range(rect1.y1, rect2.y1, rect2.y2)
             or in_range(rect1.y2, rect2.y1, rect2.y2)
-            or rect1.y1 == rect2.y1 and rect1.y2 == rect2.y2
+            or rect1.y1 == rect2.y1 and rect1.y2 >= rect2.y2
+            or rect1.y1 <= rect2.y1 and rect1.y2 == rect2.y2
         )
     )
 end

@@ -248,7 +248,6 @@ function Player.construct(args)
     function player.update_collisions(self, tiles)
         local x, y = unpack(self:get_current_bottom_tile())
         self:_update_fall_by_gravity(tiles, x, y)
-        self:_update_collisions(tiles, x, y - 1)  -- top
         self:_update_collisions(tiles, x, y)  -- bottom
     end
 
@@ -290,14 +289,16 @@ function Player.construct(args)
 
     function player._update_collisions(self, tiles, x, y)
         for x_offs = -1, 1 do
-            for y_offs = -1, 1 do
+            for y_offs = -2, 1 do
                 local tile = tiles:get(x + x_offs, y + y_offs)
+                -- print(x + x_offs, y + y_offs, tile ~= nil)
                 if tile == nil then
                     goto continue
                 end
 
                 local tile_rect = TileMap.get_tile_rect(x + x_offs, y + y_offs, self.TILE_SIZE)
                 local player_rect = player:get_rect()
+                -- print(tile_rect.x1, tile_rect.x2, tile_rect.y1, tile_rect.y2, "---", player_rect.x1, player_rect.x2, player_rect.y1, player_rect.y2)
 
                 -- HACK - open doors
                 -- local DOOR = 539
