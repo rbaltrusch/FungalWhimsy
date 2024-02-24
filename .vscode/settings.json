@@ -17,6 +17,9 @@
         "font",
         "background_image",
         "background_entities",
-        "background_mushroom"
+        "background_mushroom",
+        "tilemaps",
+        "current_tilemap_index",
+        "jump_pad_sound"
     ]
 }

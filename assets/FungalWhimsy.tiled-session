@@ -26,10 +26,10 @@
         },
         "testmap.tmx": {
             "scale": 2,
-            "selectedLayer": 1,
+            "selectedLayer": 5,
             "viewCenter": {
-                "x": 222.75,
-                "y": 181
+                "x": 238.75,
+                "y": 161
             }
         },
         "tilesheet.tsx": {

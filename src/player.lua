@@ -61,7 +61,7 @@ function Player.construct(args)
             self.walk_sound:play()
         end
 
-        if not self:get_animation().ongoing then
+        if not self:get_animation().ongoing and not self.stun_timer.ongoing then
             self:get_animation():start()
         end
         self.x = self.x + x
