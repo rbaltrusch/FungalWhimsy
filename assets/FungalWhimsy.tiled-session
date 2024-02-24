@@ -16,8 +16,8 @@
             "scale": 1,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 1677.5,
-                "y": 387
+                "x": 1599.5,
+                "y": 1599
             }
         },
         "quick_tilesheet.tsx": {
@@ -25,16 +25,16 @@
             "scaleInEditor": 1
         },
         "testmap.tmx": {
-            "scale": 2,
-            "selectedLayer": 2,
+            "scale": 1.5,
+            "selectedLayer": 0,
             "viewCenter": {
-                "x": 232.25,
-                "y": 204.5
+                "x": 240.33333333333331,
+                "y": 160
             }
         }
     },
-    "last.exportedFilePath": "D:/Alle_Dateien/Code/Lua/Options/assets",
-    "last.imagePath": "D:/Alle_Dateien/Code/Lua/Options/assets",
+    "last.exportedFilePath": "D:/Alle_Dateien/Code/Lua/FungalWhimsy/assets",
+    "last.imagePath": "D:/Alle_Dateien/Code/Lua/FungalWhimsy/assets",
     "map.lastUsedExportFilter": "Lua-Dateien (*.lua)",
     "map.lastUsedFormat": "tmx",
     "map.tileHeight": 16,
@@ -44,7 +44,7 @@
         "quick_tilesheet.tsx",
         "D:/Alle_Dateien/Code/Lua/Myrkur/assets/map.tmx"
     ],
-    "project": "options_game.tiled-project",
+    "project": "FungalWhimsy.tiled-project",
     "property.type": "bool",
     "recentFiles": [
         "D:/Alle_Dateien/Code/Lua/Myrkur/assets/map.tmx",

@@ -1,6 +1,6 @@
-# Options Game
+# Fungal Whimsy
 
-The options menu, is the entire game (game jam entry for the LÖVE game jam 2024).
+This is my game jam entry for the LÖVE game jam 2024.
 
 ## How to run
 
