@@ -80,7 +80,7 @@ function love.load()
         landing_particle_system=ParticleSystem.construct({
             x = 0,
             y = 0,
-            colour = Colour.construct(255, 255, 255, 0.2),
+            colour = Colour.construct(200, 200, 200, 0.2),
             size = 1,
             size_change = 2.5, -- per sec
             spawn_chance = 100,  -- per sec
@@ -93,7 +93,7 @@ function love.load()
         walking_particle_system=ParticleSystem.construct({
             x = 0,
             y = 0,
-            colour = Colour.construct(255, 255, 255, 0.2),
+            colour = Colour.construct(200, 200, 200, 0.2),
             size = 1,
             size_change = 1.5, -- per sec
             spawn_chance = 20,  -- per sec
@@ -109,7 +109,7 @@ function love.load()
     camera = Camera.construct{x=0, y=0, speed_factor=2.5, width=WIDTH/DEFAULT_SCALING, height=HEIGHT/DEFAULT_SCALING}
     font = love.graphics.newFont("assets/KenneyPixel.ttf")
 
-    -- shader = love.graphics.newShader(require("src/shader"))
+    shader = love.graphics.newShader(require("src/shader"))
 end
 
 local function check_collectible_collisions()
@@ -145,8 +145,11 @@ end
 local function draw()
     local scaling = love.window.getFullscreen() and MAX_SCALING or DEFAULT_SCALING
     love.graphics.scale(scaling, scaling)
+
     local width, height, _ = love.window.getMode()
-    -- love.graphics.setShader(shader)
+    shader:send("u_resolution", {width, height})
+    shader:send("u_time", love.timer.getTime())
+    love.graphics.setShader(shader)
     love.graphics.setBackgroundColor(unpack(BACKGROUND_COLOUR))
 
     local x_offset = math.sin(love.timer.getTime() * 5) * 1.5
@@ -158,7 +161,7 @@ local function draw()
     --     entity:render(camera)
     -- end
 
-    -- love.graphics.setShader() --reset
+    love.graphics.setShader() --reset
 
     love.graphics.setFont(font)
 
