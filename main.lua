@@ -25,6 +25,8 @@ local function load_sound(filename, volume)
 end
 
 function love.load()
+    JUMP_PAD = 21
+    PLAYER_JUMP_HEIGHT = 36
     BACKGROUND_COLOUR = Colour.construct(0, 0, 0)
     background_image = love.graphics.newImage("assets/background.png")
     background_mushroom = love.graphics.newImage("assets/large_mushroom_with_ground.png")
@@ -47,7 +49,7 @@ function love.load()
     music:setLooping(true)
     music:play()
 
-    tileset = SpriteSheet.load_sprite_sheet("assets/quick_tilesheet.png", TILE_SIZE, TILE_SIZE, 1)
+    tileset = SpriteSheet.load_sprite_sheet("assets/tilesheet.png", TILE_SIZE, TILE_SIZE, 1)
     tilemap = require "assets/testmap"
     collision_map = TileMap.construct_collision_map(tilemap, "terrain")
     tiles = TileMap.construct_tiles(tilemap, tileset)
@@ -110,7 +112,7 @@ function love.load()
             expired_predicate = function(particle) return particle.size > 10 or particle.alive_time > 0.25 end
         }),
     }
-    player:move(1, 0)
+    player:move(1, 0) -- HACK for gravity fix if starting by standing on ground
     player:update_collisions(tiles["terrain"])
     camera = Camera.construct{x=0, y=0, speed_factor=2.5, width=WIDTH/DEFAULT_SCALING, height=HEIGHT/DEFAULT_SCALING}
     font = love.graphics.newFont("assets/KenneyPixel.ttf")
@@ -128,10 +130,25 @@ local function check_collectible_collisions()
     end
 end
 
+local function check_interactible_collisions()
+    local player_rect = player:get_rect()
+    player_rect.y2 = player_rect.y2 + 1
+    local collectibles = TileMap.get_tile_rects(tiles["interactibles"].tiles, TILE_SIZE)
+    for pos, tile in pairs(collectibles) do
+        -- print(player_rect.x1, player_rect.x2, player_rect.y1, player_rect.y2, tile.rect.x1, tile.rect.x2, tile.rect.y1, tile.rect.y2)
+        if Collision.colliding(player_rect, tile.rect) then
+            if tile.tile.index == JUMP_PAD then
+                player:jump(PLAYER_JUMP_HEIGHT * 2, 2)
+            end
+        end
+    end
+end
+
 local function update(dt)
     player:update(dt)
-    player:update_collisions(tiles["terrain"])
+    player:update_collisions(tiles["terrain"])  -- only collide with a single tile layer or it will not work!
     check_collectible_collisions()
+    check_interactible_collisions()
     camera:update(player, dt)
 
     -- if won then
@@ -166,6 +183,9 @@ local function draw()
 
     local x_offset = math.sin(love.timer.getTime() * 5) * 1.5
     TileMap.render(tiles["terrain"].tiles, tileset, camera, TILE_SIZE)
+    TileMap.render(tiles["checkpoints"].tiles, tileset, camera, TILE_SIZE)
+    TileMap.render(tiles["interactibles"].tiles, tileset, camera, TILE_SIZE)
+    TileMap.render(tiles["spikes"].tiles, tileset, camera, TILE_SIZE, 0, 5)
     TileMap.render(tiles["collectibles"].tiles, tileset, camera, TILE_SIZE, x_offset)
     player:render(camera)
 
@@ -228,7 +248,7 @@ function love.keypressed(key)
     elseif key == "right" or key == "d" then
         player:start_move_right()
     elseif key == "space" then
-        player:jump()
+        player:jump(PLAYER_JUMP_HEIGHT, 1)
     elseif key == "c" then
         -- camera.enabled = not camera.enabled
     end

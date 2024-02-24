@@ -49,6 +49,7 @@ function Player.construct(args)
         MIN_AIRBORNE_TIME = 0.1,
         jump_height_reached = 0,
         max_jump_height = 36,
+        jump_factor = 1,
     }
 
     function player.move(self, x, y)
@@ -89,7 +90,7 @@ function Player.construct(args)
         print(self.speed_x, self.speed_y)
     end
 
-    function player.jump(self)
+    function player.jump(self, max_jump_height, factor)
         if self.stun_timer.ongoing then
             return
         end
@@ -97,6 +98,8 @@ function Player.construct(args)
             return
         end
 
+        self.max_jump_height = max_jump_height
+        self.jump_factor = factor
         self.jump_sound:play()
         self.jump_counter = 0
         -- self.speed_y = - self.SPEED * 8
@@ -129,7 +132,7 @@ function Player.construct(args)
         print("update jump", self.speed_y)
         -- self.speed_y = math.min(0, self.speed_y + decay)
         self.jump_counter = self.jump_counter + 1
-        self.speed_y = - self.JUMP_SPEED * math.pow(0.5, self.jump_counter / 5)
+        self.speed_y = - self.JUMP_SPEED * math.pow(0.5, self.jump_counter / 5) * self.jump_factor
         if self.jump_counter > 30 then
             self.speed_y = 0
             self.jumping = false
@@ -316,7 +319,7 @@ function Player.construct(args)
                 local speed_x = self.x - self.previous_x
                 local speed_y = self.y - self.previous_y
                 if speed_x ~= 0 then
-                    print("collide x")
+                    -- print("collide x")
                     local y_overlap = Collision.get_y_overlap(player_rect, tile_rect)
                     local neighbour = tiles:get(x + x_offs, y + y_offs + (y_overlap > 0 and -1 or 1))
                     if math.abs(y_overlap) < self.EDGE_LENIENCE and neighbour == nil then
@@ -326,7 +329,7 @@ function Player.construct(args)
                     end
                 end
                 if speed_y ~= 0 then
-                    print("collide y")
+                    -- print("collide y")
                     local x_overlap = Collision.get_x_overlap(player_rect, tile_rect)
                     local neighbour = tiles:get(x + x_offs + (x_overlap > 0 and -1 or 1), y + y_offs)
                     if math.abs(x_overlap) < self.EDGE_LENIENCE and neighbour == nil then
