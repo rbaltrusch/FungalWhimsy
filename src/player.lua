@@ -15,6 +15,8 @@ function Player.construct(args)
         size = args.size,
         jump_timer = args.jump_timer,
         coyote_timer = args.coyote_timer,
+        stun_timer = args.stun_timer,
+        stun_after_airborne = args.stun_after_airborne,
         image = args.image,
         walk_sound = args.walk_sound,
         jump_sound = args.jump_sound,
@@ -64,6 +66,9 @@ function Player.construct(args)
     end
 
     function player.start_move_left(self)
+        if self.stun_timer.ongoing then
+            return
+        end
         self.looking_right = false
         self.walk_animation:stop()
         self.speed_x = - self.SPEED
@@ -72,6 +77,9 @@ function Player.construct(args)
     end
 
     function player.start_move_right(self)
+        if self.stun_timer.ongoing then
+            return
+        end
         self.looking_right = true
         self.walk_left_animation:stop()
         self.speed_x = self.SPEED
@@ -80,6 +88,9 @@ function Player.construct(args)
     end
 
     function player.jump(self)
+        if self.stun_timer.ongoing then
+            return
+        end
         if self.jump_timer:is_ongoing() or self.airborne and not self.coyote_timer:is_ongoing() then
             return
         end
@@ -151,6 +162,7 @@ function Player.construct(args)
         self.jump_timer:update(dt)
         self.coyote_timer:update(dt)
         self.idle_timer:update(dt)
+        self.stun_timer:update(dt)
         self:update_jump()
         self:update_gravity()
         self.landing_particle_system:update(dt)
@@ -175,7 +187,14 @@ function Player.construct(args)
         self.previous_x = self.x
         self.previous_y = self.y
         self:update_idle()
-        self:move(self.speed_x * dt, self.speed_y * dt)
+
+        if self.stun_timer:is_expired() then
+            self.stun_timer:stop()
+        end
+
+        if not self.stun_timer.ongoing then
+            self:move(self.speed_x * dt, self.speed_y * dt)
+        end
     end
 
     function player.get_current_bottom_tile(self)
@@ -245,6 +264,9 @@ function Player.construct(args)
         end
         if self.land_sound:isPlaying() then
             self.land_sound:stop()
+        end
+        if self.airborne_time > self.stun_after_airborne then
+            self.stun_timer:start()
         end
         self.landing_particle_system:move_to(self.x + self.size.x / 2, self.y + self.size.y)
         self.landing_particle_system:start()

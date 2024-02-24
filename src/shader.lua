@@ -10,7 +10,7 @@ uniform float u_time;
 
 vec4 effect(vec4 color, Image image, vec2 uvs, vec2 texture_coords) {
     vec4 texture = Texel(image, uvs);
-    float pulse = 0.1 * sin(u_time);
+    float pulse = 0.07 * sin(u_time);
     vec2 middle = vec2(0.5, 0.5);
     float dist = distance(middle, texture_coords / u_resolution);
     float factor = min(1.1, - log(dist + pulse));

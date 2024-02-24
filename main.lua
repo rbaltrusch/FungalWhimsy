@@ -29,7 +29,7 @@ function love.load()
     TILE_SIZE = 16
     DEBUG_ENABLED = false
     DEFAULT_SCALING = 2
-    WIDTH, HEIGHT = 480, 320
+    WIDTH, HEIGHT = 600, 450
     WIN_WIDTH, WIN_HEIGHT = love.window.getDesktopDimensions()
     MAX_SCALING = DEFAULT_SCALING * math.min(WIN_WIDTH / WIDTH, WIN_HEIGHT / HEIGHT)
     -- love.window.setIcon(love.image.newImageData("assets/runeM.png"))
@@ -59,6 +59,8 @@ function love.load()
         jump_timer=Timer.construct(0.45),
         coyote_timer=Timer.construct(0.2),
         idle_timer=Timer.construct(0.5),
+        stun_timer=Timer.construct(0.5),
+        stun_after_airborne=1,
         size= {x = 16, y = 22},
         tile_size=TILE_SIZE,
         walk_animation=Animation.construct(
