@@ -7,12 +7,17 @@ precision mediump float;
 uniform vec2 u_resolution;
 uniform float u_factor;
 uniform float u_time;
+uniform float u_death_time;
 
 vec4 effect(vec4 color, Image image, vec2 uvs, vec2 texture_coords) {
     vec4 texture = Texel(image, uvs);
+    vec2 scaled_position = texture_coords / u_resolution;
+    if (scaled_position.x < (u_death_time * 2)) {
+        return vec4(0.0, 0.0, 0.0, 1);
+    }
     float pulse = 0.07 * sin(u_time);
     vec2 middle = vec2(0.5, 0.5);
-    float dist = distance(middle, texture_coords / u_resolution);
+    float dist = distance(middle, scaled_position);
     float factor = min(1.1, - log(dist + pulse));
     return vec4(texture.rgb * factor, texture.a);
 }

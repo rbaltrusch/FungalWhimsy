@@ -11,6 +11,7 @@ function Timer.construct(delay)
 
     function timer.stop(self)
         self.ongoing = false
+        self.time = 0
     end
 
     function timer.update(self, dt)

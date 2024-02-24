@@ -25,6 +25,9 @@ local function load_sound(filename, volume)
 end
 
 local function init_player()
+    local death_sound = load_sound("assets/death.wav")
+    death_sound:setPitch(3)
+
     local player_image = love.graphics.newImage("assets/player.png")
     player_image:setFilter("nearest", "nearest")
     player = Player.construct{
@@ -36,6 +39,7 @@ local function init_player()
         coyote_timer=Timer.construct(0.2),
         idle_timer=Timer.construct(0.5),
         stun_timer=Timer.construct(0.5),
+        death_timer=Timer.construct(0.5),
         stun_after_airborne=1,
         size= {x = 16, y = 22},
         tile_size=TILE_SIZE,
@@ -48,10 +52,13 @@ local function init_player()
         idle_animation=Animation.construct(
             SpriteSheet.load_sprite_sheet("assets/player_idle.png", 17, 22, 1), 0.1
         ),
+        death_animation=Animation.construct(
+            SpriteSheet.load_sprite_sheet("assets/player_death.png", 17, 22, 1), 0.05
+        ),
         walk_sound=load_sound("assets/walk.wav"),
         fall_sound=load_sound("assets/fall.wav"),
         land_sound=load_sound("assets/land.wav"),
-        death_sound=load_sound("assets/death.wav"),
+        death_sound=death_sound,
         jump_sound=SoundCollection.construct({
             load_sound("assets/jump.wav", 0.3),
             load_sound("assets/jump2.wav", 0.3),
@@ -92,12 +99,14 @@ local function load_tilemap(tilemap_name)
     init_player()
     player.x = player_rect.x1
     player.y = player_rect.y1
+    player:set_checkpoint()
     player:move(1, 0) -- HACK for gravity fix if starting by standing on ground
     player:update_collisions(tiles["terrain"])
 end
 
 function love.load()
     JUMP_PAD = 21
+    FLAT_SPIKES = 17
     PLAYER_JUMP_HEIGHT = 36
     BACKGROUND_COLOUR = Colour.construct(0, 0, 0)
     background_image = love.graphics.newImage("assets/background.png")
@@ -123,7 +132,7 @@ function love.load()
     music:setLooping(true)
     music:play()
 
-    current_tilemap_index = 2
+    current_tilemap_index = 1
     tilemaps = {"assets/testmap", "assets/testmap2"}
     tileset = SpriteSheet.load_sprite_sheet("assets/tilesheet.png", TILE_SIZE, TILE_SIZE, 1)
     load_tilemap(tilemaps[current_tilemap_index])
@@ -163,9 +172,22 @@ local function check_spike_collisions()
     player_rect.y2 = player_rect.y2 + 1
     local collectibles = TileMap.get_tile_rects(tiles["spikes"].tiles, TILE_SIZE)
     for pos, tile in pairs(collectibles) do
-        -- print(player_rect.x1, player_rect.x2, player_rect.y1, player_rect.y2, tile.rect.x1, tile.rect.x2, tile.rect.y1, tile.rect.y2)
-        if Collision.colliding(player_rect, tile.rect) then
+        if tile.tile.index == FLAT_SPIKES then -- smaller hitbox (only 4 pixels wide instead of 16)
+            tile.rect.y1 = tile.rect.y1 + (TILE_SIZE - 4)
+        end
+        if Collision.colliding(tile.rect, player_rect) then
             player:die()
+        end
+    end
+end
+
+local function check_checkpoint_collisions()
+    local player_rect = player:get_rect()
+    player_rect.y2 = player_rect.y2 + 1
+    local collectibles = TileMap.get_tile_rects(tiles["checkpoints"].tiles, TILE_SIZE)
+    for pos, tile in pairs(collectibles) do
+        if Collision.colliding(player_rect, tile.rect) then
+            player:set_checkpoint(tile.rect.x2 - player.size.x, tile.rect.y2 - player.size.y)
         end
     end
 end
@@ -175,6 +197,7 @@ local function update(dt)
     player:update_collisions(tiles["terrain"])  -- only collide with a single tile layer or it will not work!
     check_collectible_collisions()
     check_interactible_collisions()
+    check_checkpoint_collisions()
     check_spike_collisions()
     camera:update(player, dt)
 
@@ -187,11 +210,6 @@ local function update(dt)
     -- end
 end
 
-local function respawn()
-    -- TODO
-    player:respawn()
-end
-
 local function draw()
     local scaling = love.window.getFullscreen() and MAX_SCALING or DEFAULT_SCALING
     love.graphics.scale(scaling, scaling)
@@ -199,11 +217,11 @@ local function draw()
     local width, height, _ = love.window.getMode()
     shader:send("u_resolution", {width, height})
     shader:send("u_time", love.timer.getTime())
+    shader:send("u_death_time", player.death_timer.time)
     love.graphics.setShader(shader)
     love.graphics.setBackgroundColor(unpack(BACKGROUND_COLOUR))
     love.graphics.draw(background_image, love.math.newTransform())
     for _, position in ipairs(background_entities) do
-        --entity:render(camera)
         local factor, x, y = unpack(position)
         love.graphics.draw(background_mushroom, love.math.newTransform(x - camera.total_x / factor, y - camera.total_y / factor, 0, 2, 2))
     end

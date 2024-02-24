@@ -10,20 +10,21 @@ function Player.construct(args)
     local player = {
         x = args.x,
         y = args.y,
+        checkpoint = {x = args.x, y = args.y},
         previous_x = args.x,
         previous_y = args.y,
         size = args.size,
         jump_timer = args.jump_timer,
         coyote_timer = args.coyote_timer,
         stun_timer = args.stun_timer,
+        death_timer = args.death_timer,
         stun_after_airborne = args.stun_after_airborne,
         image = args.image,
         walk_sound = args.walk_sound,
         jump_sound = args.jump_sound,
         fall_sound = args.fall_sound,
         land_sound = args.land_sound,
-        death_sound = args.death_sound,  -- TODO
-        respawn_sound = args.respawn_sound, -- TODO
+        death_sound = args.death_sound,
         unlock_sound = args.unlock_sound, -- TODO
         speed_x = 0,
         speed_y = 0,
@@ -31,18 +32,19 @@ function Player.construct(args)
         walk_animation = args.walk_animation,
         walk_left_animation = args.walk_left_animation,
         idle_animation = args.idle_animation,
+        death_animation = args.death_animation,
         TILE_SIZE = args.tile_size,
         looking_right = true,
         airborne = false,
         jumping = false,
         idle = false,
+        dying = false,
         idle_timer = args.idle_timer,
         landing_particle_system = args.landing_particle_system,
         walking_particle_system = args.walking_particle_system,
         JUMP_DECAY = 37,  -- how fast jump speed drops
         JUMP_SPEED = 770,
         jump_counter = 0,
-        dead = false,
         EDGE_LENIENCE = 7,  -- how forgiving terrain edge collisions are
         GRAVITY = 145,
         airborne_time = 0,
@@ -50,10 +52,11 @@ function Player.construct(args)
         jump_height_reached = 0,
         max_jump_height = 36,
         jump_factor = 1,
+        deaths = 0,
     }
 
     function player.move(self, x, y)
-        if x == 0 and y == 0 or self.dead then
+        if x == 0 and y == 0 or self.dying then
             return
         end
 
@@ -118,6 +121,9 @@ function Player.construct(args)
     end
 
     function player.get_animation(self)
+        if self.dying then
+            return self.death_animation
+        end
         if self.idle then
             return self.idle_animation
         end
@@ -169,11 +175,16 @@ function Player.construct(args)
         self.coyote_timer:update(dt)
         self.idle_timer:update(dt)
         self.stun_timer:update(dt)
+        self.death_timer:update(dt)
         self:update_jump()
         self:update_gravity()
         self.landing_particle_system:update(dt)
         self.walking_particle_system:update(dt)
         self.walking_particle_system:move_to(self.x + self.size.x / 2, self.y + self.size.y)
+
+        if self:check_dead() and self.death_timer:is_expired() then
+            self:respawn()
+        end
 
         if self.walk_sound:isPlaying() and self.speed_x == 0 or self.speed_y ~= 0 then
             self.walk_sound:stop()
@@ -229,23 +240,39 @@ function Player.construct(args)
         }
     end
 
+    function player.set_checkpoint(self, x, y)
+        self.checkpoint = {x = x or self.x, y = y or self.y}
+    end
+
     function player.respawn(self)
-        -- TODO: set x and y
-        if not self.respawn_sound:isPlaying() then
-            self.respawn_sound:play()
-        end
-        self.dead = false
+        self.x = self.checkpoint.x
+        self.y = self.checkpoint.y
+        self.dying = false
+        self.death_timer:stop()
         print("respawned")
     end
 
     function player.die(self)
+        if self.dying then
+            return
+        end
+
         self:stop()
         self.walk_sound:stop()
         self:get_animation():stop()
         if not self.death_sound:isPlaying() then
             self.death_sound:play()
         end
+        self.deaths = self.deaths + 1
+        self.dying = true
+        self.death_animation:start()
+        self.fall_sound:stop()
+        self.death_timer:start()
         print("died")
+    end
+
+    function player.check_dead(self)
+        return self.dying and not self.death_animation.ongoing  -- finished death animation
     end
 
     function player.update_collisions(self, tiles)
@@ -255,6 +282,10 @@ function Player.construct(args)
     end
 
     function player._update_fall_by_gravity(self, tiles, x, y)
+        if self.dying then
+            return
+        end
+
         -- handle gravity start by falling due to no floor
         local floor = tiles:get(x, y)
         local airborne = self.airborne
@@ -350,6 +381,9 @@ function Player.construct(args)
     function player.render(self, camera)
         self.landing_particle_system:draw(camera)
         self.walking_particle_system:draw(camera)
+        if self:check_dead() then
+            return
+        end
 
         local transform = love.math.newTransform(self.x - camera.total_x, self.y - camera.total_y)
         local anim = self:get_animation()
