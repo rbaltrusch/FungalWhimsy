@@ -90,7 +90,6 @@ function ParticleSystem._spawn_new_particle(self)
         _self.y = _self.y + _self.speed_y * dt
         _self.alive_time = _self.alive_time + dt
         _self.expired = self.expired_predicate(_self)
-        print(_self.expired)
     end
 
     local function draw(_self, camera)

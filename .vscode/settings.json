@@ -15,5 +15,8 @@
         "collision_map",
         "entities",
         "font",
+        "background_image",
+        "background_entities",
+        "background_mushroom"
     ]
 }

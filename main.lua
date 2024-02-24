@@ -26,13 +26,18 @@ end
 
 function love.load()
     BACKGROUND_COLOUR = Colour.construct(0, 0, 0)
+    background_image = love.graphics.newImage("assets/background.png")
+    background_mushroom = love.graphics.newImage("assets/large_mushroom_with_ground.png")
+    -- background_mushroom:setFilter("nearest", "nearest")
+    background_entities = {{32, 137, 119}, {31, 184, 77}, {31, 181, 69}, {29, 94, 39}, {28, 6, 189}, {28, -24, 139}, {26, 262, 106}, {26, 233, 217}, {26, 174, 20}, {26, 80, 190}, {25, 210, 2}, {24, 211, 204}, {24, 147, 9}, {24, 139, -28}, {24, -13, 220}, {21, 290, 196}, {21, 167, 69}, {21, 132, 129}, {19, 330, -2}, {19, 229, -40}, {19, 101, 117}, {19, -1, 194}, {18, 187, 162}, {17, 296, 212}, {17, 217, 215}, {17, -6, 159}, {16, 298, -11}, {16, 74, 61}, {15, 346, 241}, {15, 43, 242}, {15, -38, 127}, {13, 110, 13}, {13, 44, 88}, {12, 54, -12}, {11, -10, 18}, {10, 239, 216}, {9, 
+    343, 41}, {9, 154, 195}, {8, 282, 12}, {8, -10, -47}}
     TILE_SIZE = 16
     DEBUG_ENABLED = false
     DEFAULT_SCALING = 2
     WIDTH, HEIGHT = 600, 450
     WIN_WIDTH, WIN_HEIGHT = love.window.getDesktopDimensions()
     MAX_SCALING = DEFAULT_SCALING * math.min(WIN_WIDTH / WIDTH, WIN_HEIGHT / HEIGHT)
-    -- love.window.setIcon(love.image.newImageData("assets/runeM.png"))
+    love.window.setIcon(love.image.newImageData("assets/player_icon.png"))
 
     muted = false
 
@@ -153,15 +158,17 @@ local function draw()
     shader:send("u_time", love.timer.getTime())
     love.graphics.setShader(shader)
     love.graphics.setBackgroundColor(unpack(BACKGROUND_COLOUR))
+    love.graphics.draw(background_image, love.math.newTransform())
+    for _, position in ipairs(background_entities) do
+        --entity:render(camera)
+        local factor, x, y = unpack(position)
+        love.graphics.draw(background_mushroom, love.math.newTransform(x - camera.total_x / factor, y - camera.total_y / factor, 0, 2, 2))
+    end
 
     local x_offset = math.sin(love.timer.getTime() * 5) * 1.5
     TileMap.render(tiles["terrain"].tiles, tileset, camera, TILE_SIZE)
     TileMap.render(tiles["collectibles"].tiles, tileset, camera, TILE_SIZE, x_offset)
     player:render(camera)
-
-    -- for _, entity in ipairs(entities) do
-    --     entity:render(camera)
-    -- end
 
     love.graphics.setShader() --reset
 
