@@ -41,12 +41,11 @@ function love.load()
 
     muted = false
 
-    -- TODO
-    -- local music = love.audio.newSource("assets/myrkur_menu2.wav", "stream")
-    -- music:setVolume(0.2)
-    -- music:setPitch(0.5)
-    -- music:setLooping(true)
-    -- music:play()
+    local music = love.audio.newSource("assets/FungalWhimsy.wav", "stream")
+    music:setVolume(0.5)
+    music:setPitch(0.5)
+    music:setLooping(true)
+    music:play()
 
     tileset = SpriteSheet.load_sprite_sheet("assets/quick_tilesheet.png", TILE_SIZE, TILE_SIZE, 1)
     tilemap = require "assets/testmap"
