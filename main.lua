@@ -135,6 +135,7 @@ function love.load()
     player_death_icon = love.graphics.newImage("assets/player_death_icon.png")
     player_death_icon:setFilter("nearest", "nearest")
 
+    DASH_REFRESH_RESET_TIME = 3
     BACKGROUND_COLOUR = Colour.construct(0, 0, 0)
     background_image = love.graphics.newImage("assets/background.png")
     background_mushroom = love.graphics.newImage("assets/large_mushroom_with_ground.png")
@@ -186,15 +187,20 @@ local function check_collectible_collisions()
                 if won then goto continue end
                 player.stars = player.stars + 1
                 star_sound:play()
-            elseif tile.tile.index == DASH_REFRESH then
+            elseif tile.tile.index == DASH_REFRESH and not tile.tile.collected then
                 player.dash_timer:stop()
                 player.dash_reset:play()
+                ---@diagnostic disable-next-line: inject-field
+                tile.tile.collected = 0
             elseif tile.tile.index == PORTAL then
                 current_tilemap_index = current_tilemap_index + 1
                 load_tilemap(tilemaps[current_tilemap_index])
                 teleport_sound:play()
             end
-            tiles["collectibles"].tiles[x][y] = nil
+
+            if tile.tile.index ~= DASH_REFRESH then
+                tiles["collectibles"].tiles[x][y] = nil
+            end
             ::continue::
         end
     end
@@ -249,10 +255,24 @@ local function check_checkpoint_collisions()
     end
 end
 
+local function update_collectibles(dt)
+    local collectibles = TileMap.get_tile_rects(tiles["collectibles"].tiles, TILE_SIZE)
+    for pos, data in pairs(collectibles) do
+        local tile = data.tile
+        if tile.collected then
+            tile.collected = tile.collected + dt
+            if tile.collected > DASH_REFRESH_RESET_TIME then
+                tile.collected = nil
+            end
+        end
+    end
+end
+
 local function update(dt)
     player:update(dt)
     player:update_collisions(tiles["terrain"])  -- only collide with a single tile layer or it will not work!
     check_collectible_collisions()
+    update_collectibles(dt)
     check_interactible_collisions()
     check_checkpoint_collisions()
     check_spike_collisions()
@@ -273,6 +293,41 @@ local function update(dt)
         local func = love.keyboard.isDown("left") and player.start_move_left or player.start_move_right
         func(player)
     end
+end
+
+local function draw_win_screen(width, height, scaling)
+    local middle_x = width / (2 * scaling)
+    local middle_y = height / (2 * scaling)
+    local text_padding = 5
+
+    local offset = 0
+    local text = "You won!"
+    local text_width = font:getWidth(text)
+    love.graphics.print(text, middle_x - text_width/2, middle_y + offset, 0, 1.5, 1.5)
+
+    offset = offset + font:getHeight() * 1.5 + text_padding
+    text = string.format("Completed in %s", get_time_string(completion_time))
+    text_width = font:getWidth(text)
+    love.graphics.print(text, middle_x - text_width/2, middle_y + offset, 0, 1, 1)
+
+    offset = offset + font:getHeight() * 1 + text_padding
+    text = string.format("%s/%s collected", player.stars, MAX_STARS)
+    text_width = font:getWidth(text)
+    local star_x = middle_x - text_width/2 - TILE_SIZE + 7
+    love.graphics.print(text, star_x + TILE_SIZE + 2, middle_y + offset, 0, 1, 1)
+    love.graphics.draw(tileset.image, tileset.quads[STAR], love.math.newTransform(star_x, middle_y + offset - 4))
+
+    offset = offset + TILE_SIZE - 2
+    text = string.format("%s death%s", player.deaths, player.deaths == 1 and "" or "s")
+    text_width = font:getWidth(text)
+    font:getHeight()
+    love.graphics.print(text, star_x + TILE_SIZE + 2, middle_y + offset, 0, 1, 1)
+    love.graphics.draw(player_death_icon, love.math.newTransform(star_x, middle_y + offset - 4))
+
+    offset = offset + TILE_SIZE + text_padding
+    text = "Press r to try again"
+    text_width = font:getWidth(text)
+    love.graphics.print(text, middle_x - text_width/2, middle_y + offset, 0, 1, 1)
 end
 
 local function draw()
@@ -312,38 +367,7 @@ local function draw()
 
     -- win screen
     if won then
-        local middle_x = width / (2 * scaling)
-        local middle_y = height / (2 * scaling)
-        local text_padding = 5
-
-        local offset = 0
-        local text = "You won!"
-        local text_width = font:getWidth(text)
-        love.graphics.print(text, middle_x - text_width/2, middle_y + offset, 0, 1.5, 1.5)
-
-        offset = offset + font:getHeight() * 1.5 + text_padding
-        text = string.format("Completed in %s", get_time_string(completion_time))
-        text_width = font:getWidth(text)
-        love.graphics.print(text, middle_x - text_width/2, middle_y + offset, 0, 1, 1)
-
-        offset = offset + font:getHeight() * 1 + text_padding
-        text = string.format("%s/%s collected", player.stars, MAX_STARS)
-        text_width = font:getWidth(text)
-        local star_x = middle_x - text_width/2 - TILE_SIZE + 7
-        love.graphics.print(text, star_x + TILE_SIZE + 2, middle_y + offset, 0, 1, 1)
-        love.graphics.draw(tileset.image, tileset.quads[STAR], love.math.newTransform(star_x, middle_y + offset - 4))
-
-        offset = offset + TILE_SIZE - 2
-        text = string.format("%s death%s", player.deaths, player.deaths == 1 and "" or "s")
-        text_width = font:getWidth(text)
-        font:getHeight()
-        love.graphics.print(text, star_x + TILE_SIZE + 2, middle_y + offset, 0, 1, 1)
-        love.graphics.draw(player_death_icon, love.math.newTransform(star_x, middle_y + offset - 4))
-
-        offset = offset + TILE_SIZE + text_padding
-        text = "Press r to try again"
-        text_width = font:getWidth(text)
-        love.graphics.print(text, middle_x - text_width/2, middle_y + offset, 0, 1, 1)
+        draw_win_screen(width, height, scaling)
     end
 
     if DEBUG_ENABLED then

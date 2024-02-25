@@ -107,7 +107,7 @@ function TileMap.render(tiles, tileset, camera, tilesize, y_offset, skip_index)
     y_offset = y_offset or 0
     for x, col in pairs(tiles) do
         for y, tile in pairs(col) do
-            if tile.index == skip_index then goto continue end
+            if tile.index == skip_index or tile.collected then goto continue end  -- HACK
 
             local transform = love.math.newTransform(
                 x * tilesize - camera.total_x, y * tilesize - camera.total_y + y_offset
