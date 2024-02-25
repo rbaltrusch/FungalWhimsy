@@ -62,6 +62,7 @@ function Player.construct(args)
         jump_factor = 1,
         dash_factor = 1,
         dash_type = nil,
+        dash_positions = {},
         deaths = args.deaths or 0,
         stars = args.stars or 0,
     }
@@ -131,7 +132,6 @@ function Player.construct(args)
         self.jumping = true
         self.jump_height_reached = 0
         self.jump_timer:start()
-        print("jumping", self.speed_x, self.speed_y)
     end
 
     ---@param dash_type string
@@ -144,6 +144,7 @@ function Player.construct(args)
         self.dashing = true
         self.dash_factor = 1
         self.dash_counter = 0
+        self.dash_positions = {{self.x, self.y}}
         self.dash_looking_right = self.looking_right
         self.dash_timer:start()
         self.dash_type = dash_type
@@ -166,7 +167,9 @@ function Player.construct(args)
 
         self:set_dash_speed()
         self.dash_counter = self.dash_counter + 1
+        self.dash_positions[#self.dash_positions + 1] = {self.x, self.y}
         if self.dash_counter > 25 then
+            self.dash_positions = {}
             self.dashing = false
             self.speed_x = 0
             self.speed_y = 0
@@ -178,7 +181,6 @@ function Player.construct(args)
             return
         end
 
-        print("update jump", self.speed_y)
         self.jump_counter = self.jump_counter + 1
         self.speed_y = - self.JUMP_SPEED * math.pow(0.5, self.jump_counter / 5) * self.jump_factor
         if self.jump_counter > 30 then
@@ -262,7 +264,6 @@ function Player.construct(args)
                 self.jumping = false
                 self.speed_y = - (self.max_jump_height - math.abs(old)) / dt
             end
-            print("jump height", self.jump_height_reached)
         end
 
         if not self.stun_timer.ongoing then
@@ -386,7 +387,6 @@ function Player.construct(args)
                 local speed_x = self.x - self.previous_x
                 local speed_y = self.y - self.previous_y
                 if speed_x ~= 0 then
-                    -- print("collide x")
                     local y_overlap = Collision.get_y_overlap(player_rect, tile_rect)
                     local neighbour = tiles:get(x + x_offs, y + y_offs + (y_overlap > 0 and -1 or 1))
                     if math.abs(y_overlap) < self.EDGE_LENIENCE and neighbour == nil then
@@ -396,7 +396,6 @@ function Player.construct(args)
                     end
                 end
                 if speed_y ~= 0 then
-                    -- print("collide y")
                     local x_overlap = Collision.get_x_overlap(player_rect, tile_rect)
                     local neighbour = tiles:get(x + x_offs + (x_overlap > 0 and -1 or 1), y + y_offs)
                     if math.abs(x_overlap) < self.EDGE_LENIENCE and neighbour == nil then
@@ -431,13 +430,37 @@ function Player.construct(args)
             return
         end
 
-        local transform = love.math.newTransform(self.x - camera.total_x, self.y - camera.total_y)
-        local anim = self:get_animation()
-        if anim.ongoing then
-            local quad = anim:get_current_quad()
-            love.graphics.draw(anim.image, quad, transform)
+        local function draw(transform)
+            local anim = self:get_animation()
+            if anim.ongoing then
+                local quad = anim:get_current_quad()
+                love.graphics.draw(anim.image, quad, transform)
+            else
+                love.graphics.draw(self.image, transform)
+            end
+        end
+
+        -- not dashing or in place dash
+        if not self.dashing or #self.dash_positions == 1 then
+            local transform = love.math.newTransform(self.x - camera.total_x, self.y - camera.total_y)
+            draw(transform)
         else
-            love.graphics.draw(self.image, transform)
+            local r, g, b, a = love.graphics.getColor()
+            local length = #self.dash_positions
+            for i, pos in ipairs(self.dash_positions) do
+                local x, y = unpack(pos)
+                local alpha = math.max(0.05, i / length)
+                love.graphics.setColor(1, 1, 1, alpha) -- set alpha for image draw -- FIXME not working
+                local transform = love.math.newTransform(x - camera.total_x, y - camera.total_y)
+                local anim = self:get_animation()
+                if anim.ongoing then
+                    local quad = anim:get_current_quad()
+                    love.graphics.draw(anim.image, quad, transform)
+                else
+                    love.graphics.draw(self.image, transform)
+                end
+            end
+            love.graphics.setColor(r, g, b, a) -- reset
         end
     end
 

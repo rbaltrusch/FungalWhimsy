@@ -1,1 +1,3 @@
-boink sound: http://www.freesfx.co.uk
+Boink and glass shatter sounds (edited): http://www.freesfx.co.uk
+All other sound effects by Richard Baltrusch.
+All music, art, levels and code by Richard Baltrusch.

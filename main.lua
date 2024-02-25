@@ -83,7 +83,7 @@ local function init_player()
         landing_particle_system=ParticleSystem.construct({
             x = 0,
             y = 0,
-            colour = Colour.construct(200, 200, 200, 0.2),
+            colour = Colour.construct(1, 1, 1, 0.2),
             size = 1,
             size_change = 2.5, -- per sec
             spawn_chance = 100,  -- per sec
@@ -96,7 +96,7 @@ local function init_player()
         walking_particle_system=ParticleSystem.construct({
             x = 0,
             y = 0,
-            colour = Colour.construct(200, 200, 200, 0.2),
+            colour = Colour.construct(1, 1, 1, 0.2),
             size = 1,
             size_change = 1.5, -- per sec
             spawn_chance = 20,  -- per sec
@@ -131,7 +131,7 @@ function love.load()
 
     completed_since = 0
     completion_time = 0
-    MAX_STARS = 10 -- TODO
+    MAX_STARS = 5 -- TODO
     player_death_icon = love.graphics.newImage("assets/player_death_icon.png")
     player_death_icon:setFilter("nearest", "nearest")
 
@@ -145,7 +145,7 @@ function love.load()
     background_entities = {{32, 125, 133}, {32, 95, 52}, {25, 34, -48}, {24, 317, 165}, {20, 45, 22}, {19, 226, 159}, {18, 53, 170}, {17, 349, 12}, {16, 316, 69}, 
     {16, 204, -34}, {15, 328, 112}, {11, 172, 45}, {9, 174, 190}, {8, -46, 246}, {8, -46, -41}}
     TILE_SIZE = 16
-    DEBUG_ENABLED = true
+    DEBUG_ENABLED = false
     DEFAULT_SCALING = 2
     WIDTH, HEIGHT = 600, 450
     WIN_WIDTH, WIN_HEIGHT = love.window.getDesktopDimensions()
@@ -166,8 +166,8 @@ function love.load()
     music:play()
 
     won = false
-    current_tilemap_index = 1
-    tilemaps = {"assets/testmap", "assets/testmap2"}
+    current_tilemap_index = 2
+    tilemaps = {"assets/levels/level1", "assets/levels/level2", "assets/levels/level3"}
     tileset = SpriteSheet.load_sprite_sheet("assets/tilesheet.png", TILE_SIZE, TILE_SIZE, 1)
     load_tilemap(tilemaps[current_tilemap_index])
 
@@ -187,6 +187,7 @@ local function check_collectible_collisions()
                 if won then goto continue end
                 player.stars = player.stars + 1
                 star_sound:play()
+                tiles["collectibles"].tiles[x][y] = nil
             elseif tile.tile.index == DASH_REFRESH and not tile.tile.collected then
                 player.dash_timer:stop()
                 player.dash_reset:play()
@@ -196,10 +197,6 @@ local function check_collectible_collisions()
                 current_tilemap_index = current_tilemap_index + 1
                 load_tilemap(tilemaps[current_tilemap_index])
                 teleport_sound:play()
-            end
-
-            if tile.tile.index ~= DASH_REFRESH then
-                tiles["collectibles"].tiles[x][y] = nil
             end
             ::continue::
         end
@@ -215,6 +212,10 @@ local function check_interactible_collisions()
         if Collision.colliding(player_rect, tile.rect) then
             if tile.tile.index == JUMP_PAD then
                 local factor = love.keyboard.isDown("space") and 3 or 2  -- jump higher with space
+                -- force jump by resetting all jump vars
+                player.jump_timer:stop()
+                player.stun_timer:stop()
+                player.airborne = false
                 player:jump(PLAYER_JUMP_HEIGHT * factor, factor)
                 jump_pad_sound:play()
             end
@@ -414,6 +415,8 @@ function love.keypressed(key)
             love.load()
         else  --respawn
             player:respawn()
+            player:move(1, 0) -- HACK for gravity fix if starting by standing on ground
+            player:update_collisions(tiles["terrain"])
         end
 
     elseif key == "z" and DEBUG_ENABLED then
