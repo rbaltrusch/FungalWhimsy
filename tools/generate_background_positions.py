@@ -2,7 +2,7 @@ import random
 
 factors = [
     (random.randint(8, 32), random.randint(-50, 350), random.randint(-50, 250))
-    for _ in range(40)
+    for _ in range(15)
 ]
 print(
     ", ".join(

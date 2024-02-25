@@ -26,7 +26,7 @@
         },
         "testmap.tmx": {
             "scale": 2,
-            "selectedLayer": 5,
+            "selectedLayer": 4,
             "viewCenter": {
                 "x": 238.75,
                 "y": 161
@@ -34,7 +34,7 @@
         },
         "testmap2.tmx": {
             "scale": 1.9930208333333335,
-            "selectedLayer": 0,
+            "selectedLayer": 1,
             "viewCenter": {
                 "x": 240.0878064077771,
                 "y": 160.05853760518474

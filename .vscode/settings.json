@@ -20,6 +20,11 @@
         "background_mushroom",
         "tilemaps",
         "current_tilemap_index",
-        "jump_pad_sound"
+        "jump_pad_sound",
+        "won",
+        "player_death_icon",
+        "completion_time",
+        "music",
+        "completed_since"
     ]
 }

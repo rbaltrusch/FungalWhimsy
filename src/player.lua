@@ -15,6 +15,7 @@ function Player.construct(args)
         previous_y = args.y,
         size = args.size,
         jump_timer = args.jump_timer,
+        dash_timer = args.dash_timer,
         coyote_timer = args.coyote_timer,
         stun_timer = args.stun_timer,
         death_timer = args.death_timer,
@@ -25,7 +26,6 @@ function Player.construct(args)
         fall_sound = args.fall_sound,
         land_sound = args.land_sound,
         death_sound = args.death_sound,
-        unlock_sound = args.unlock_sound, -- TODO
         speed_x = 0,
         speed_y = 0,
         SPEED = args.speed,
@@ -34,9 +34,12 @@ function Player.construct(args)
         idle_animation = args.idle_animation,
         death_animation = args.death_animation,
         TILE_SIZE = args.tile_size,
+        dash_looking_right = true,
         looking_right = true,
         airborne = false,
+        walking = false,
         jumping = false,
+        dashing = false,
         idle = false,
         dying = false,
         idle_timer = args.idle_timer,
@@ -44,7 +47,9 @@ function Player.construct(args)
         walking_particle_system = args.walking_particle_system,
         JUMP_DECAY = 37,  -- how fast jump speed drops
         JUMP_SPEED = 770,
+        DASH_SPEED = 250,
         jump_counter = 0,
+        dash_counter = 0,
         EDGE_LENIENCE = 7,  -- how forgiving terrain edge collisions are
         GRAVITY = 145,
         airborne_time = 0,
@@ -52,7 +57,10 @@ function Player.construct(args)
         jump_height_reached = 0,
         max_jump_height = 36,
         jump_factor = 1,
-        deaths = 0,
+        dash_factor = 1,
+        dash_type = nil,
+        deaths = args.deaths or 0,
+        stars = args.stars or 0,
     }
 
     function player.move(self, x, y)
@@ -75,22 +83,27 @@ function Player.construct(args)
         if self.stun_timer.ongoing then
             return
         end
+        self.walking = true
         self.looking_right = false
         self.walk_animation:stop()
-        self.speed_x = - self.SPEED
         self.walking_particle_system:start()
-        print(self.speed_x, self.speed_y)
     end
 
     function player.start_move_right(self)
         if self.stun_timer.ongoing then
             return
         end
+        self.walking = true
         self.looking_right = true
         self.walk_left_animation:stop()
-        self.speed_x = self.SPEED
         self.walking_particle_system:start()
-        print(self.speed_x, self.speed_y)
+    end
+
+    function player.stop(self)
+        print("stopping")
+        self.speed_x = 0
+        self.walking = false
+        self.walking_particle_system:stop()
     end
 
     function player.jump(self, max_jump_height, factor)
@@ -99,6 +112,10 @@ function Player.construct(args)
         end
         if self.jump_timer:is_ongoing() or self.airborne and not self.coyote_timer:is_ongoing() then
             return
+        end
+
+        if self.dashing then -- boosted ground dash
+            self.dash_factor = 1.9
         end
 
         self.max_jump_height = max_jump_height
@@ -114,20 +131,42 @@ function Player.construct(args)
         print("jumping", self.speed_x, self.speed_y)
     end
 
-    function player.stop(self)
-        print("stopping")
-        self.speed_x = 0
-        self.walking_particle_system:stop()
+    ---@param dash_type string
+    function player.dash(self, dash_type)
+        if self.dash_timer:is_ongoing() or self.dashing then
+            return
+        end
+
+        self.dashing = true
+        self.dash_factor = 1
+        self.dash_counter = 0
+        self.dash_looking_right = self.looking_right
+        self.dash_timer:start()
+        self.dash_type = dash_type
     end
 
-    function player.get_animation(self)
-        if self.dying then
-            return self.death_animation
+    function player.set_dash_speed(self)
+        if not self.jumping then
+            self.speed_y = 0
         end
-        if self.idle then
-            return self.idle_animation
+
+        if self.dash_type == "neutral" then
+            self.speed_x = self.DASH_SPEED * (self.dash_looking_right and 1 or -1) * self.dash_factor
         end
-        return self.looking_right and self.walk_animation or self.walk_left_animation
+    end
+
+    function player.update_dash(self)
+        if not self.dashing then
+            return
+        end
+
+        self:set_dash_speed()
+        self.dash_counter = self.dash_counter + 1
+        if self.dash_counter > 25 then
+            self.dashing = false
+            self.speed_x = 0
+            self.speed_y = 0
+        end
     end
 
     function player.update_jump(self)
@@ -136,7 +175,6 @@ function Player.construct(args)
         end
 
         print("update jump", self.speed_y)
-        -- self.speed_y = math.min(0, self.speed_y + decay)
         self.jump_counter = self.jump_counter + 1
         self.speed_y = - self.JUMP_SPEED * math.pow(0.5, self.jump_counter / 5) * self.jump_factor
         if self.jump_counter > 30 then
@@ -146,7 +184,7 @@ function Player.construct(args)
     end
 
     function player.update_gravity(self)
-        if self.jumping then
+        if self.jumping or self.dashing then
             return
         end
         self.speed_y = self.airborne and self.GRAVITY or 0
@@ -172,18 +210,22 @@ function Player.construct(args)
     function player.update(self, dt)
         self:get_animation():update(dt)
         self.jump_timer:update(dt)
+        self.dash_timer:update(dt)
         self.coyote_timer:update(dt)
         self.idle_timer:update(dt)
         self.stun_timer:update(dt)
-        self.death_timer:update(dt)
         self:update_jump()
+        self:update_dash()
         self:update_gravity()
         self.landing_particle_system:update(dt)
         self.walking_particle_system:update(dt)
         self.walking_particle_system:move_to(self.x + self.size.x / 2, self.y + self.size.y)
 
-        if self:check_dead() and self.death_timer:is_expired() then
-            self:respawn()
+        if self:check_dead() then
+            self.death_timer:update(dt)
+            if self.death_timer:is_expired() then
+                self:respawn()
+            end
         end
 
         if self.walk_sound:isPlaying() and self.speed_x == 0 or self.speed_y ~= 0 then
@@ -220,15 +262,13 @@ function Player.construct(args)
         end
 
         if not self.stun_timer.ongoing then
-            self:move(self.speed_x * dt, self.speed_y * dt)
+            local walk_speed = self.walking and (self.SPEED * (self.looking_right and 1 or -1)) or 0
+            self:move((self.speed_x + walk_speed) * dt, self.speed_y * dt)
         end
     end
 
     function player.get_current_bottom_tile(self)
-        return {
-            MathUtil.round(self.x / self.TILE_SIZE),
-            MathUtil.round((self.y + self.size.y) / self.TILE_SIZE),  -- bottom tile
-        }
+        return MathUtil.round(self.x / self.TILE_SIZE), MathUtil.round((self.y + self.size.y) / self.TILE_SIZE)
     end
 
     function player.get_rect(self)
@@ -248,6 +288,7 @@ function Player.construct(args)
         self.x = self.checkpoint.x
         self.y = self.checkpoint.y
         self.dying = false
+        self.airborne_time = 0 -- no stun after respawn
         self.death_timer:stop()
         print("respawned")
     end
@@ -276,13 +317,14 @@ function Player.construct(args)
     end
 
     function player.update_collisions(self, tiles)
-        local x, y = unpack(self:get_current_bottom_tile())
-        self:_update_fall_by_gravity(tiles, x, y)
+        local x, y = self:get_current_bottom_tile() -- rounded
+        local foot_y = math.floor((self.y + self.size.y) / self.TILE_SIZE)
+        self:_update_fall_by_gravity(tiles, x, foot_y)
         self:_update_collisions(tiles, x, y)  -- bottom
     end
 
     function player._update_fall_by_gravity(self, tiles, x, y)
-        if self.dying then
+        if self.dying or self.dashing then
             return
         end
 
@@ -313,6 +355,7 @@ function Player.construct(args)
         end
         if self.airborne_time > self.stun_after_airborne then
             self.stun_timer:start()
+            self.walking = false
         end
         self.landing_particle_system:move_to(self.x + self.size.x / 2, self.y + self.size.y)
         self.landing_particle_system:start()
@@ -325,23 +368,12 @@ function Player.construct(args)
         for x_offs = -1, 1 do
             for y_offs = -2, 1 do
                 local tile = tiles:get(x + x_offs, y + y_offs)
-                -- print(x + x_offs, y + y_offs, tile ~= nil)
                 if tile == nil then
                     goto continue
                 end
 
                 local tile_rect = TileMap.get_tile_rect(x + x_offs, y + y_offs, self.TILE_SIZE)
                 local player_rect = player:get_rect()
-                -- print(tile_rect.x1, tile_rect.x2, tile_rect.y1, tile_rect.y2, "---", player_rect.x1, player_rect.x2, player_rect.y1, player_rect.y2)
-
-                -- HACK - open doors
-                -- local DOOR = 539
-                -- if tile.index - 1 == DOOR and (self.inventory.items["key"] or 0) > 0 then
-                --     tiles.tiles[x + x_offs][y + y_offs] = nil -- remove door
-                --     self.unlock_sound:play()
-                --     self.inventory.items["key"] = self.inventory.items["key"] - 1
-                --     goto continue
-                -- end
 
                 if not Collision.colliding(player_rect, tile_rect) then
                     goto continue
@@ -376,6 +408,16 @@ function Player.construct(args)
                 ::continue::
             end
         end
+    end
+
+    function player.get_animation(self)
+        if self.dying then
+            return self.death_animation
+        end
+        if self.idle then
+            return self.idle_animation
+        end
+        return self.looking_right and self.walk_animation or self.walk_left_animation
     end
 
     function player.render(self, camera)

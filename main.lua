@@ -11,6 +11,15 @@ require "src/timer"
 require "src/sound_collection"
 require "src/particle"
 
+---@param time number
+---@return string
+local function get_time_string(time)
+    local hours = math.floor(time / 3600)
+    local minutes = math.floor((time % 3600) / 60)
+    local seconds = time % 60
+    return string.format("%02i:%02i:%06.3f", hours, minutes, seconds)
+end
+
 local function get_player_rect(tiles)
     local player_tiles = TileMap.get_tile_rects(tiles["player"].tiles, TILE_SIZE)
     for pos, tile in pairs(player_tiles) do
@@ -25,6 +34,7 @@ local function load_sound(filename, volume)
 end
 
 local function init_player()
+    PLAYER_JUMP_HEIGHT = 36
     local death_sound = load_sound("assets/death.wav")
     death_sound:setPitch(3)
 
@@ -35,7 +45,11 @@ local function init_player()
         x=0,
         y=0,
         speed=80,
-        jump_timer=Timer.construct(0.45),
+        max_jump_height = PLAYER_JUMP_HEIGHT,
+        stars = player and player.stars,
+        deaths = player and player.deaths,
+        jump_timer=Timer.construct(0.4),
+        dash_timer=Timer.construct(0.45),
         coyote_timer=Timer.construct(0.2),
         idle_timer=Timer.construct(0.5),
         stun_timer=Timer.construct(0.5),
@@ -106,14 +120,26 @@ end
 
 function love.load()
     JUMP_PAD = 21
+    PORTAL = 22
+    WIN_FLAG = 10
+    DASH_REFRESH = 23
+    STAR = 25
     FLAT_SPIKES = 17
-    PLAYER_JUMP_HEIGHT = 36
+
+    completed_since = 0
+    completion_time = 0
+    MAX_STARS = 10 -- TODO
+    player_death_icon = love.graphics.newImage("assets/player_death_icon.png")
+    player_death_icon:setFilter("nearest", "nearest")
+
     BACKGROUND_COLOUR = Colour.construct(0, 0, 0)
     background_image = love.graphics.newImage("assets/background.png")
     background_mushroom = love.graphics.newImage("assets/large_mushroom_with_ground.png")
     -- background_mushroom:setFilter("nearest", "nearest")
-    background_entities = {{32, 137, 119}, {31, 184, 77}, {31, 181, 69}, {29, 94, 39}, {28, 6, 189}, {28, -24, 139}, {26, 262, 106}, {26, 233, 217}, {26, 174, 20}, {26, 80, 190}, {25, 210, 2}, {24, 211, 204}, {24, 147, 9}, {24, 139, -28}, {24, -13, 220}, {21, 290, 196}, {21, 167, 69}, {21, 132, 129}, {19, 330, -2}, {19, 229, -40}, {19, 101, 117}, {19, -1, 194}, {18, 187, 162}, {17, 296, 212}, {17, 217, 215}, {17, -6, 159}, {16, 298, -11}, {16, 74, 61}, {15, 346, 241}, {15, 43, 242}, {15, -38, 127}, {13, 110, 13}, {13, 44, 88}, {12, 54, -12}, {11, -10, 18}, {10, 239, 216}, {9, 
-    343, 41}, {9, 154, 195}, {8, 282, 12}, {8, -10, -47}}
+    -- background_entities = {{32, 137, 119}, {31, 184, 77}, {31, 181, 69}, {29, 94, 39}, {28, 6, 189}, {28, -24, 139}, {26, 262, 106}, {26, 233, 217}, {26, 174, 20}, {26, 80, 190}, {25, 210, 2}, {24, 211, 204}, {24, 147, 9}, {24, 139, -28}, {24, -13, 220}, {21, 290, 196}, {21, 167, 69}, {21, 132, 129}, {19, 330, -2}, {19, 229, -40}, {19, 101, 117}, {19, -1, 194}, {18, 187, 162}, {17, 296, 212}, {17, 217, 215}, {17, -6, 159}, {16, 298, -11}, {16, 74, 61}, {15, 346, 241}, {15, 43, 242}, {15, -38, 127}, {13, 110, 13}, {13, 44, 88}, {12, 54, -12}, {11, -10, 18}, {10, 239, 216}, {9, 
+    -- 343, 41}, {9, 154, 195}, {8, 282, 12}, {8, -10, -47}}
+    background_entities = {{32, 125, 133}, {32, 95, 52}, {25, 34, -48}, {24, 317, 165}, {20, 45, 22}, {19, 226, 159}, {18, 53, 170}, {17, 349, 12}, {16, 316, 69}, 
+    {16, 204, -34}, {15, 328, 112}, {11, 172, 45}, {9, 174, 190}, {8, -46, 246}, {8, -46, -41}}
     TILE_SIZE = 16
     DEBUG_ENABLED = true
     DEFAULT_SCALING = 2
@@ -126,12 +152,13 @@ function love.load()
 
     jump_pad_sound = load_sound("assets/boink.wav", 0.3)
 
-    local music = love.audio.newSource("assets/FungalWhimsy.wav", "stream")
+    music = love.audio.newSource("assets/FungalWhimsy.wav", "stream")
     music:setVolume(0.5)
     music:setPitch(0.5)
     music:setLooping(true)
     music:play()
 
+    won = false
     current_tilemap_index = 1
     tilemaps = {"assets/testmap", "assets/testmap2"}
     tileset = SpriteSheet.load_sprite_sheet("assets/tilesheet.png", TILE_SIZE, TILE_SIZE, 1)
@@ -139,6 +166,7 @@ function love.load()
 
     camera = Camera.construct{x=0, y=0, speed_factor=2.5, width=WIDTH/DEFAULT_SCALING, height=HEIGHT/DEFAULT_SCALING}
     font = love.graphics.newFont("assets/KenneyPixel.ttf")
+    font:setFilter("nearest", "nearest")
     shader = love.graphics.newShader(require("src/shader"))
 end
 
@@ -146,8 +174,23 @@ local function check_collectible_collisions()
     local player_rect = player:get_rect()
     local collectibles = TileMap.get_tile_rects(tiles["collectibles"].tiles, TILE_SIZE)
     for pos, tile in pairs(collectibles) do
+        local x, y = unpack(pos)
         if Collision.colliding(player_rect, tile.rect) then
-            -- TODO do something with tile
+            if tile.tile.index == STAR then
+                if won then goto continue end
+                player.stars = player.stars + 1
+            elseif tile.tile.index == DASH_REFRESH then
+                player.dash_timer:stop()
+            elseif tile.tile.index == PORTAL then
+                current_tilemap_index = current_tilemap_index + 1
+                if current_tilemap_index > #tilemaps then
+                    won = true
+                else
+                    load_tilemap(tilemaps[current_tilemap_index])
+                end
+            end
+            tiles["collectibles"].tiles[x][y] = nil
+            ::continue::
         end
     end
 end
@@ -160,7 +203,8 @@ local function check_interactible_collisions()
         -- print(player_rect.x1, player_rect.x2, player_rect.y1, player_rect.y2, tile.rect.x1, tile.rect.x2, tile.rect.y1, tile.rect.y2)
         if Collision.colliding(player_rect, tile.rect) then
             if tile.tile.index == JUMP_PAD then
-                player:jump(PLAYER_JUMP_HEIGHT * 2, 2)
+                local factor = love.keyboard.isDown("space") and 3 or 2  -- jump higher with space
+                player:jump(PLAYER_JUMP_HEIGHT * factor, factor)
                 jump_pad_sound:play()
             end
         end
@@ -169,13 +213,12 @@ end
 
 local function check_spike_collisions()
     local player_rect = player:get_rect()
-    player_rect.y2 = player_rect.y2 + 1
     local collectibles = TileMap.get_tile_rects(tiles["spikes"].tiles, TILE_SIZE)
     for pos, tile in pairs(collectibles) do
         if tile.tile.index == FLAT_SPIKES then -- smaller hitbox (only 4 pixels wide instead of 16)
             tile.rect.y1 = tile.rect.y1 + (TILE_SIZE - 4)
         end
-        if Collision.colliding(tile.rect, player_rect) then
+        if Collision.colliding(player_rect, tile.rect) then
             player:die()
         end
     end
@@ -183,10 +226,12 @@ end
 
 local function check_checkpoint_collisions()
     local player_rect = player:get_rect()
-    player_rect.y2 = player_rect.y2 + 1
     local collectibles = TileMap.get_tile_rects(tiles["checkpoints"].tiles, TILE_SIZE)
     for pos, tile in pairs(collectibles) do
-        if Collision.colliding(tile.rect, player_rect) then
+        if Collision.colliding(player_rect, tile.rect) then
+            if tile.tile.index == WIN_FLAG then
+                won = true
+            end
             player:set_checkpoint(tile.rect.x2 - player.size.x, tile.rect.y2 - player.size.y)
         end
     end
@@ -201,13 +246,16 @@ local function update(dt)
     check_spike_collisions()
     camera:update(player, dt)
 
-    -- if won then
-    --     return
-    -- end
+    if not won then
+        completion_time = completion_time + dt
+    else
+        completed_since = completed_since + dt
+    end
 
-    -- for _, entity in ipairs(entities) do
-    --     entity:update(dt, player, collision_map)
-    -- end
+    if not player.walking and (love.keyboard.isDown("left") or love.keyboard.isDown("right")) then
+        local func = love.keyboard.isDown("left") and player.start_move_left or player.start_move_right
+        func(player)
+    end
 end
 
 local function draw()
@@ -217,7 +265,8 @@ local function draw()
     local width, height, _ = love.window.getMode()
     shader:send("u_resolution", {width, height})
     shader:send("u_time", love.timer.getTime())
-    shader:send("u_death_time", player.death_timer.time)
+    shader:send("u_death_time", player.death_timer.time / player.death_timer.delay)
+    shader:send("u_offset", math.min(0.5, completed_since / 8))
     love.graphics.setShader(shader)
     love.graphics.setBackgroundColor(unpack(BACKGROUND_COLOUR))
     love.graphics.draw(background_image, love.math.newTransform())
@@ -238,26 +287,47 @@ local function draw()
 
     love.graphics.setFont(font)
 
-    -- local text = crown_bar:get_text(player.inventory.items["crown"])
-    -- local text_width = font:getWidth(text)
-    -- love.graphics.printf(text, width/scaling - text_width - TILE_SIZE - 10, 10, 200, "left", 0, 1, 1)
-    -- love.graphics.draw(crown_bar.image, width/scaling - TILE_SIZE - 10, 10 - TILE_SIZE/4)
-
-    -- if won then
-    --     local text = "You won!"
-    --     local text_width = font:getWidth(text)
-    --     love.graphics.printf(text, width/2/scaling - text_width/2, height/2/scaling, 200, "left", 0, 1, 1)
-    -- end
-
-    if not player.dead then
-        -- respawn
+    -- speed run timer
+    if not won then
+        local text = get_time_string(completion_time)
+        love.graphics.printf(text, (width/scaling) - 45 - 10, 5, 200, "left", 0, 1, 1)
     end
 
-    -- local anim = tileset -- player.walk_animation
-    -- for x = 1, anim.size do
-    --     local transform = love.math.newTransform(player.x - camera.total_x - 100 + x * 14, player.y - camera.total_y + 50)
-    --     love.graphics.draw(anim.image, anim.quads[3], transform)
-    -- end
+    -- win screen
+    if won then
+        local middle_x = width / (2 * scaling)
+        local middle_y = height / (2 * scaling)
+        local text_padding = 5
+
+        local offset = 0
+        local text = "You won!"
+        local text_width = font:getWidth(text)
+        love.graphics.print(text, middle_x - text_width/2, middle_y + offset, 0, 1.5, 1.5)
+
+        offset = offset + font:getHeight() * 1.5 + text_padding
+        text = string.format("Completed in %s", get_time_string(completion_time))
+        text_width = font:getWidth(text)
+        love.graphics.print(text, middle_x - text_width/2, middle_y + offset, 0, 1, 1)
+
+        offset = offset + font:getHeight() * 1 + text_padding
+        text = string.format("%s/%s collected", player.stars, MAX_STARS)
+        text_width = font:getWidth(text)
+        local star_x = middle_x - text_width/2 - TILE_SIZE + 7
+        love.graphics.print(text, star_x + TILE_SIZE + 2, middle_y + offset, 0, 1, 1)
+        love.graphics.draw(tileset.image, tileset.quads[STAR], love.math.newTransform(star_x, middle_y + offset - 4))
+
+        offset = offset + TILE_SIZE - 2
+        text = string.format("%s death%s", player.deaths, player.deaths == 1 and "" or "s")
+        text_width = font:getWidth(text)
+        font:getHeight()
+        love.graphics.print(text, star_x + TILE_SIZE + 2, middle_y + offset, 0, 1, 1)
+        love.graphics.draw(player_death_icon, love.math.newTransform(star_x, middle_y + offset - 4))
+
+        offset = offset + TILE_SIZE + text_padding
+        text = "Press r to try again"
+        text_width = font:getWidth(text)
+        love.graphics.print(text, middle_x - text_width/2, middle_y + offset, 0, 1, 1)
+    end
 
     if DEBUG_ENABLED then
         love.graphics.print(string.format("fps: %s", math.floor(love.timer.getFPS())), 0, 0, 0, 0.5, 0.5)
@@ -288,17 +358,23 @@ function love.keypressed(key)
         love.event.quit(0)
     end
 
-    if key == "left" or key == "a" then
+    if key == "left" then
         player:start_move_left()
-    elseif key == "right" or key == "d" then
+    elseif key == "right" then
         player:start_move_right()
     elseif key == "space" then
         player:jump(PLAYER_JUMP_HEIGHT, 1)
     elseif key == "c" then
-        -- camera.enabled = not camera.enabled
+        player:dash("neutral")
+    elseif won and key == "r" then
+        player = nil -- reset stats
+        music:stop()
+        love.load()
     elseif key == "z" and DEBUG_ENABLED then
         current_tilemap_index = current_tilemap_index == 1 and 2 or 1
         load_tilemap(tilemaps[current_tilemap_index])
+    elseif key == "w" and DEBUG_ENABLED then
+        won = true
     end
 end
 
@@ -306,9 +382,6 @@ local function handle_player_stop_walk(key)
     local keys = {
         ["left"] = player.start_move_left,
         ["right"] = player.start_move_right,
-        ["a"] = player.start_move_left,
-        ["e"] = player.start_move_left,
-        ["d"] = player.start_move_right,
     }
     for key_, _ in pairs(keys) do
         if key_ ~= key then goto continue end
@@ -328,6 +401,7 @@ function love.keyreleased(key)
     handle_player_stop_walk(key)
     if key == "space" then
         player.speed_y = 0
+        player.jumping = false
     end
 end
 
