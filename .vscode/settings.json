@@ -25,6 +25,9 @@
         "player_death_icon",
         "completion_time",
         "music",
-        "completed_since"
+        "completed_since",
+        "teleport_sound",
+        "win_sound",
+        "star_sound"
     ]
 }

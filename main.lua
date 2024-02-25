@@ -72,6 +72,9 @@ local function init_player()
         walk_sound=load_sound("assets/walk.wav"),
         fall_sound=load_sound("assets/fall.wav"),
         land_sound=load_sound("assets/land.wav"),
+        dash_sound=load_sound("assets/dash.wav", 0.3),
+        checkpoint_sound=load_sound("assets/checkpoint.wav", 0.04),
+        dash_reset=load_sound("assets/dash_reset.wav", 0.2),
         death_sound=death_sound,
         jump_sound=SoundCollection.construct({
             load_sound("assets/jump.wav", 0.3),
@@ -149,7 +152,10 @@ function love.load()
     love.window.setIcon(love.image.newImageData("assets/player_icon.png"))
 
     muted = false
-
+    star_sound = load_sound("assets/star.wav", 0.05)
+    win_sound = load_sound("assets/win.wav", 0.7)
+    teleport_sound = load_sound("assets/teleport.wav")
+    teleport_sound:setPitch(0.7)
     jump_pad_sound = load_sound("assets/boink.wav", 0.3)
 
     music = love.audio.newSource("assets/FungalWhimsy.wav", "stream")
@@ -179,15 +185,14 @@ local function check_collectible_collisions()
             if tile.tile.index == STAR then
                 if won then goto continue end
                 player.stars = player.stars + 1
+                star_sound:play()
             elseif tile.tile.index == DASH_REFRESH then
                 player.dash_timer:stop()
+                player.dash_reset:play()
             elseif tile.tile.index == PORTAL then
                 current_tilemap_index = current_tilemap_index + 1
-                if current_tilemap_index > #tilemaps then
-                    won = true
-                else
-                    load_tilemap(tilemaps[current_tilemap_index])
-                end
+                load_tilemap(tilemaps[current_tilemap_index])
+                teleport_sound:play()
             end
             tiles["collectibles"].tiles[x][y] = nil
             ::continue::
@@ -229,10 +234,17 @@ local function check_checkpoint_collisions()
     local collectibles = TileMap.get_tile_rects(tiles["checkpoints"].tiles, TILE_SIZE)
     for pos, tile in pairs(collectibles) do
         if Collision.colliding(player_rect, tile.rect) then
+            local checkpoint_x = tile.rect.x2 - player.size.x
+            local checkpoint_y = tile.rect.y2 - player.size.y
             if tile.tile.index == WIN_FLAG then
                 won = true
+                if completed_since == 0 then
+                    win_sound:play()
+                end
+            elseif player.checkpoint.x ~= checkpoint_x or player.checkpoint.y ~= checkpoint_y then
+                player.checkpoint_sound:play()
             end
-            player:set_checkpoint(tile.rect.x2 - player.size.x, tile.rect.y2 - player.size.y)
+            player:set_checkpoint(checkpoint_x, checkpoint_y)
         end
     end
 end
@@ -250,6 +262,11 @@ local function update(dt)
         completion_time = completion_time + dt
     else
         completed_since = completed_since + dt
+        if win_sound:isPlaying() then
+            music:setVolume(math.max(0.1, 0.5 - completed_since / 4)) -- fade out 2s
+        else
+            music:setVolume(math.min(0.5, music:getVolume() + dt / 10)) -- fade back in 5s
+        end
     end
 
     if not player.walking and (love.keyboard.isDown("left") or love.keyboard.isDown("right")) then
@@ -366,15 +383,21 @@ function love.keypressed(key)
         player:jump(PLAYER_JUMP_HEIGHT, 1)
     elseif key == "c" then
         player:dash("neutral")
-    elseif won and key == "r" then
-        player = nil -- reset stats
-        music:stop()
-        love.load()
+    elseif key == "r" then
+        if won then
+            player = nil -- reset stats
+            music:stop()
+            love.load()
+        else  --respawn
+            player:respawn()
+        end
+
     elseif key == "z" and DEBUG_ENABLED then
         current_tilemap_index = current_tilemap_index == 1 and 2 or 1
         load_tilemap(tilemaps[current_tilemap_index])
     elseif key == "w" and DEBUG_ENABLED then
         won = true
+        win_sound:play()
     end
 end
 

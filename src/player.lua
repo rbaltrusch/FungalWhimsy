@@ -25,7 +25,10 @@ function Player.construct(args)
         jump_sound = args.jump_sound,
         fall_sound = args.fall_sound,
         land_sound = args.land_sound,
+        dash_sound = args.dash_sound,
         death_sound = args.death_sound,
+        checkpoint_sound = args.checkpoint_sound,
+        dash_reset = args.dash_reset,
         speed_x = 0,
         speed_y = 0,
         SPEED = args.speed,
@@ -137,6 +140,7 @@ function Player.construct(args)
             return
         end
 
+        self.dash_sound:play()
         self.dashing = true
         self.dash_factor = 1
         self.dash_counter = 0
