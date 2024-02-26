@@ -121,7 +121,7 @@ local function load_tilemap(tilemap_name)
     player:update_collisions(tiles["terrain"])
 end
 
-function love.load()
+function love.load(_, _, restart)
     JUMP_PAD = 21
     PORTAL = 22
     WIN_FLAG = 10
@@ -129,13 +129,17 @@ function love.load()
     STAR = 25
     FLAT_SPIKES = 17
 
+    started = restart and true or false -- for title screen rendering at startup
     completed_since = 0
     completion_time = 0
-    MAX_STARS = 5 -- TODO
+    MAX_STARS = 9 -- TODO
     player_death_icon = love.graphics.newImage("assets/player_death_icon.png")
     player_death_icon:setFilter("nearest", "nearest")
 
-    DASH_REFRESH_RESET_TIME = 3
+    title_screen = love.graphics.newImage("assets/title_screen.png")
+    title_screen:setFilter("nearest", "nearest")
+
+    DASH_REFRESH_RESET_TIME = 2.5
     BACKGROUND_COLOUR = Colour.construct(0, 0, 0)
     background_image = love.graphics.newImage("assets/background.png")
     background_mushroom = love.graphics.newImage("assets/large_mushroom_with_ground.png")
@@ -166,7 +170,7 @@ function love.load()
     music:play()
 
     won = false
-    current_tilemap_index = 2
+    current_tilemap_index = 1
     tilemaps = {"assets/levels/level1", "assets/levels/level2", "assets/levels/level3"}
     tileset = SpriteSheet.load_sprite_sheet("assets/tilesheet.png", TILE_SIZE, TILE_SIZE, 1)
     load_tilemap(tilemaps[current_tilemap_index])
@@ -270,6 +274,10 @@ local function update_collectibles(dt)
 end
 
 local function update(dt)
+    if not started then
+        return
+    end
+
     player:update(dt)
     player:update_collisions(tiles["terrain"])  -- only collide with a single tile layer or it will not work!
     check_collectible_collisions()
@@ -336,6 +344,14 @@ local function draw()
     love.graphics.scale(scaling, scaling)
 
     local width, height, _ = love.window.getMode()
+    if not started then
+        love.graphics.draw(title_screen, love.math.newTransform((width / (scaling * 2) - title_screen:getWidth()/2), 0))
+        local text = "Press any key to start"
+        local text_width = font:getWidth(text)
+        love.graphics.print(text, width / scaling - text_width - 5, height / scaling - font:getHeight() - 5, 0, 0.5, 0.5)
+        return
+    end
+
     shader:send("u_resolution", {width, height})
     shader:send("u_time", love.timer.getTime())
     shader:send("u_death_time", player.death_timer.time / player.death_timer.delay)
@@ -384,6 +400,13 @@ function love.draw()
     ErrorUtil.call_or_exit(draw, not DEBUG_ENABLED)
 end
 
+function love.mousepressed()
+    if not started then -- any key to start
+        started = true
+        return
+    end
+end
+
 function love.keypressed(key)
     --Debug
     -- type "cont" to exit debug mode
@@ -400,6 +423,11 @@ function love.keypressed(key)
         love.event.quit(0)
     end
 
+    if not started then -- any key to start
+        started = true
+        return
+    end
+
     if key == "left" then
         player:start_move_left()
     elseif key == "right" then
@@ -412,7 +440,7 @@ function love.keypressed(key)
         if won then
             player = nil -- reset stats
             music:stop()
-            love.load()
+            love.load(nil, nil, true)
         else  --respawn
             player:respawn()
             player:move(1, 0) -- HACK for gravity fix if starting by standing on ground

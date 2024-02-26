@@ -28,6 +28,8 @@
         "completed_since",
         "teleport_sound",
         "win_sound",
-        "star_sound"
+        "star_sound",
+        "started",
+        "title_screen"
     ]
 }
