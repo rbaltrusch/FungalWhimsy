@@ -275,6 +275,7 @@ end
 
 local function update(dt)
     if not started then
+        player.fall_sound:stop()
         return
     end
 

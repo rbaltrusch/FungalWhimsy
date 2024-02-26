@@ -234,7 +234,7 @@ function Player.construct(args)
             end
         end
 
-        if self.walk_sound:isPlaying() and self.speed_x == 0 or self.speed_y ~= 0 then
+        if self.walk_sound:isPlaying() and not self.walking then
             self.walk_sound:stop()
         end
 
