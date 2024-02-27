@@ -238,7 +238,7 @@ function Player.construct(args)
             self.walk_sound:stop()
         end
 
-        if self.airborne then
+        if self.airborne and not self.jumping then
             self.airborne_time = self.airborne_time + dt
             self.landing_particle_system.max_active_time = self.airborne_time * 0.6
             self.landing_particle_system.max_particles = math.ceil(self.airborne_time * 30)

@@ -48,7 +48,7 @@ local function init_player()
         max_jump_height = PLAYER_JUMP_HEIGHT,
         stars = player and player.stars,
         deaths = player and player.deaths,
-        jump_timer=Timer.construct(0.4),
+        jump_timer=Timer.construct(0.05),
         dash_timer=Timer.construct(0.45),
         coyote_timer=Timer.construct(0.2),
         idle_timer=Timer.construct(0.5),
