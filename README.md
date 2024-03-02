@@ -1,4 +1,4 @@
-![Fungal Whimsy](media/banner.png)
+![Fungal Whimsy](media/banner_github.png)
 
 This is a puzzle precision platformer and my game jam entry for the [LÖVE jam 2024](https://itch.io/jam/love2d-jam-2024), where you play as a small shroom exploring a dense mushroom forest filled with musky smells and humid spells.
 
