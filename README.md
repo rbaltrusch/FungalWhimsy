@@ -28,3 +28,7 @@ copy FungalWhimsy.zip FungalWhimsy.love
 copy /b love.exe+FungalWhimsy.love FungalWhimsy.exe
 ::finally, copy all love2d dlls into folder containing .exe (including license).
 ```
+
+## License
+
+The code is available under the [MIT License](LICENSE). The artwork and audio is not included under this licensing and may only be used jointly with the code provided in this repository for non-commercial purposes. Redistribution of the artwork and audio requires permission of the author.
