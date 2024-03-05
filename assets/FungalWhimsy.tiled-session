@@ -16,24 +16,24 @@
             "scale": 1,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 1597.5,
-                "y": 1597
+                "x": 1599.5,
+                "y": 1600
             }
         },
         "levels/level1.tmx": {
             "scale": 1.5,
-            "selectedLayer": 0,
+            "selectedLayer": 4,
             "viewCenter": {
-                "x": 490,
+                "x": 470,
                 "y": 102
             }
         },
         "levels/level2.tmx": {
-            "scale": 4,
-            "selectedLayer": 1,
+            "scale": 2,
+            "selectedLayer": 4,
             "viewCenter": {
-                "x": 380,
-                "y": 171.25
+                "x": 325.5,
+                "y": 284.5
             }
         },
         "levels/level3.tmx": {
@@ -52,7 +52,7 @@
             "scale": 2,
             "selectedLayer": 0,
             "viewCenter": {
-                "x": 238.75,
+                "x": 207,
                 "y": 161
             }
         },
