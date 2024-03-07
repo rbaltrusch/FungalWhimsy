@@ -18,6 +18,14 @@ Note: you may have to specify the full path to the love executable if it is not 
 
 ## How to package
 
+Build using the `tools\build.py` script or use the manual build method described below:
+
+```
+python tools\build.py
+```
+
+### Manual Love build
+
 Detailed packaging instructions for Windows are documented [here](https://love2d.org/wiki/Game_Distribution).
 
 Essentially, select all files required to run the game, zip them, rename .zip to .love, then concatenate it with love.exe and distribute it will all .dll's (including license) found in the love installation folder:
