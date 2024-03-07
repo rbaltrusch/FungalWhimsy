@@ -20,6 +20,6 @@ vec4 effect(vec4 color, Image image, vec2 uvs, vec2 texture_coords) {
     vec2 middle = vec2(0.5, 0.5);
     float dist = distance(middle, scaled_position);
     float factor = min(1.1, - log(dist + pulse + u_offset));
-    return vec4(texture.rgb * factor, texture.a);
+    return vec4(texture.rgb * factor, texture.a) * color;
 }
 ]]
