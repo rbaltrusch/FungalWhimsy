@@ -37,6 +37,21 @@ copy /b love.exe+FungalWhimsy.love FungalWhimsy.exe
 ::finally, copy all love2d dlls into folder containing .exe (including license).
 ```
 
+### Web build
+
+An HTML build for the web can be built using [love.js](https://github.com/Davidobot/love.js):
+
+```
+npm install love.js
+npx love.js.cmd FungalWhimsy.love webbuild -t="Fungal Whimsy" -c
+```
+
+Manually test the webbuild locally by running the following command, then opening `localhost:8000`:
+
+```
+python -m http.server --directory webbuild
+```
+
 ## License
 
 The code is available under the [MIT License](LICENSE). The artwork and audio is not included under this licensing and may only be used jointly with the code provided in this repository for non-commercial purposes. Redistribution of the artwork and audio requires permission of the author.
