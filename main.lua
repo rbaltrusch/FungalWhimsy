@@ -187,8 +187,7 @@ local function check_collectible_collisions()
     for pos, tile in pairs(collectibles) do
         local x, y = unpack(pos)
         if Collision.colliding(player_rect, tile.rect) then
-            if tile.tile.index == STAR then
-                if won then goto continue end
+            if tile.tile.index == STAR and not won then
                 player.stars = player.stars + 1
                 star_sound:play()
                 tiles["collectibles"].tiles[x][y] = nil
@@ -202,7 +201,6 @@ local function check_collectible_collisions()
                 load_tilemap(tilemaps[current_tilemap_index])
                 teleport_sound:play()
             end
-            ::continue::
         end
     end
 end
@@ -463,16 +461,16 @@ local function handle_player_stop_walk(key)
         ["right"] = player.start_move_right,
     }
     for key_, _ in pairs(keys) do
-        if key_ ~= key then goto continue end
+        if key_ == key then
 
-        for key__, func in pairs(keys) do
-            if love.keyboard.isDown(key__) then
-                func(player)
-                return
+            for key__, func in pairs(keys) do
+                if love.keyboard.isDown(key__) then
+                    func(player)
+                    return
+                end
             end
+            player:stop()
         end
-        player:stop()
-        ::continue::
     end
 end
 

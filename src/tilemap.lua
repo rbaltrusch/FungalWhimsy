@@ -47,13 +47,13 @@ function TileMap.construct_tiles(tilemap, tileset)
         local name = layer.name
         for i, tile_index in ipairs(layer.data) do
             -- skip empty tiles
-            if tile_index == 0 then goto continue end
-    
-            i = i - 1
-            local x = i % width
-            local y = math.floor(i / width)
-            layers[name].tiles[x][y] = {index=tile_index, quad=tileset.quads[tile_index]}
-            ::continue::
+            if tile_index ~= 0 then
+        
+                i = i - 1
+                local x = i % width
+                local y = math.floor(i / width)
+                layers[name].tiles[x][y] = {index=tile_index, quad=tileset.quads[tile_index]}
+            end
         end
     end
 
@@ -65,16 +65,16 @@ function TileMap.construct_collision_map(tilemap, layer_name)
     local tiles = {}
     local width = tilemap.width
     for _, layer in ipairs(tilemap.layers) do
-        if layer.name ~= layer_name then goto continue end
-        for i = 0, tilemap.width do
-            tiles[i] = {}
+        if layer.name == layer_name then
+            for i = 0, tilemap.width do
+                tiles[i] = {}
+            end
+            for i, tile_index in ipairs(layer.data) do
+                local x = i % width
+                local y = math.floor(i / width)
+                tiles[x][y] = tile_index == 0 --passable if empty
+            end
         end
-        for i, tile_index in ipairs(layer.data) do
-            local x = i % width
-            local y = math.floor(i / width)
-            tiles[x][y] = tile_index == 0 --passable if empty
-        end
-        ::continue::
     end
     return tiles
 end
@@ -88,18 +88,18 @@ function TileMap.render_tiles(tiles, tileset, camera, tilesize, width, height, y
     local tiles_max_y = (height + camera.total_y) / tilesize + 100
 
     for x, col in pairs(tiles) do
-        if x < tiles_min_x then goto continuex end
-        if x > tiles_max_x then break end
-        for y, tile in pairs(col) do
-            if y < tiles_min_y or tile == nil then goto continuey end
-            if y > tiles_max_y then break end
-            local transform = love.math.newTransform(
-                x * tilesize - camera.total_x, y * tilesize - camera.total_y + y_offset
-            )
-            love.graphics.draw(tileset.image, tile.quad, transform)
-            ::continuey::
+        if x >= tiles_min_x then
+            if x > tiles_max_x then break end
+            for y, tile in pairs(col) do
+                if y >= tiles_min_y and tile ~= nil then
+                    if y > tiles_max_y then break end
+                    local transform = love.math.newTransform(
+                        x * tilesize - camera.total_x, y * tilesize - camera.total_y + y_offset
+                    )
+                    love.graphics.draw(tileset.image, tile.quad, transform)
+                end
+            end
         end
-        ::continuex::
     end
 end
 
@@ -107,13 +107,13 @@ function TileMap.render(tiles, tileset, camera, tilesize, y_offset, skip_index)
     y_offset = y_offset or 0
     for x, col in pairs(tiles) do
         for y, tile in pairs(col) do
-            if tile.index == skip_index or tile.collected then goto continue end  -- HACK
+            if tile.index ~= skip_index and not tile.collected then
 
-            local transform = love.math.newTransform(
-                x * tilesize - camera.total_x, y * tilesize - camera.total_y + y_offset
-            )
-            love.graphics.draw(tileset.image, tile.quad, transform)
-            ::continue::
+                local transform = love.math.newTransform(
+                    x * tilesize - camera.total_x, y * tilesize - camera.total_y + y_offset
+                )
+                love.graphics.draw(tileset.image, tile.quad, transform)
+            end
         end
     end
 end
