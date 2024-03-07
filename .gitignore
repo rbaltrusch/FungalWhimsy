@@ -5,3 +5,10 @@ idea.txt
 todo.txt
 run.bat
 *.zip
+version*/
+*.exe
+*.love
+node_modules/
+webbuild/
+package.json
+package-lock.json

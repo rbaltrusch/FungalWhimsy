@@ -18,6 +18,14 @@ Note: you may have to specify the full path to the love executable if it is not 
 
 ## How to package
 
+Build using the `tools\build.py` script or use the manual build method described below:
+
+```
+python tools\build.py
+```
+
+### Manual Love build
+
 Detailed packaging instructions for Windows are documented [here](https://love2d.org/wiki/Game_Distribution).
 
 Essentially, select all files required to run the game, zip them, rename .zip to .love, then concatenate it with love.exe and distribute it will all .dll's (including license) found in the love installation folder:
@@ -27,6 +35,21 @@ Essentially, select all files required to run the game, zip them, rename .zip to
 copy FungalWhimsy.zip FungalWhimsy.love
 copy /b love.exe+FungalWhimsy.love FungalWhimsy.exe
 ::finally, copy all love2d dlls into folder containing .exe (including license).
+```
+
+### Web build
+
+An HTML build for the web can be built using [love.js](https://github.com/Davidobot/love.js):
+
+```
+npm install love.js
+npx love.js.cmd FungalWhimsy.love webbuild -t="Fungal Whimsy" -c
+```
+
+Manually test the webbuild locally by running the following command, then opening `localhost:8000`:
+
+```
+python -m http.server --directory webbuild
 ```
 
 ## License

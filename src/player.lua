@@ -372,43 +372,37 @@ function Player.construct(args)
     function player._update_collisions(self, tiles, x, y)
         for x_offs = -1, 1 do
             for y_offs = -2, 1 do
-                local tile = tiles:get(x + x_offs, y + y_offs)
-                if tile == nil then
-                    goto continue
-                end
-
-                local tile_rect = TileMap.get_tile_rect(x + x_offs, y + y_offs, self.TILE_SIZE)
                 local player_rect = player:get_rect()
-
-                if not Collision.colliding(player_rect, tile_rect) then
-                    goto continue
-                end
-
-                local speed_x = self.x - self.previous_x
-                local speed_y = self.y - self.previous_y
-                if speed_x ~= 0 then
-                    local y_overlap = Collision.get_y_overlap(player_rect, tile_rect)
-                    local neighbour = tiles:get(x + x_offs, y + y_offs + (y_overlap > 0 and -1 or 1))
-                    if math.abs(y_overlap) < self.EDGE_LENIENCE and neighbour == nil then
-                        self.y = self.y - y_overlap
-                    else
-                        self.x = tile_rect.x1 + self.TILE_SIZE * (speed_x > 0 and -1 or 1)
-                    end
-                end
-                if speed_y ~= 0 then
-                    local x_overlap = Collision.get_x_overlap(player_rect, tile_rect)
-                    local neighbour = tiles:get(x + x_offs + (x_overlap > 0 and -1 or 1), y + y_offs)
-                    if math.abs(x_overlap) < self.EDGE_LENIENCE and neighbour == nil then
-                        if not self.airborne then
-                            self.x = self.x - x_overlap
+                local tile = tiles:get(x + x_offs, y + y_offs)
+                if tile ~= nil then
+                    local tile_rect = TileMap.get_tile_rect(x + x_offs, y + y_offs, self.TILE_SIZE)
+                    if Collision.colliding(player_rect, tile_rect) then
+                        local speed_x = self.x - self.previous_x
+                        local speed_y = self.y - self.previous_y
+                        if speed_x ~= 0 then
+                            local y_overlap = Collision.get_y_overlap(player_rect, tile_rect)
+                            local neighbour = tiles:get(x + x_offs, y + y_offs + (y_overlap > 0 and -1 or 1))
+                            if math.abs(y_overlap) < self.EDGE_LENIENCE and neighbour == nil then
+                                self.y = self.y - y_overlap
+                            else
+                                self.x = tile_rect.x1 + self.TILE_SIZE * (speed_x > 0 and -1 or 1)
+                            end
                         end
-                    else
-                        -- land on ground
-                        self.y = tile_rect.y1 + (speed_y > 0 and - self.size.y  or self.TILE_SIZE)
-                        self:_land_on_ground()
+                        if speed_y ~= 0 then
+                            local x_overlap = Collision.get_x_overlap(player_rect, tile_rect)
+                            local neighbour = tiles:get(x + x_offs + (x_overlap > 0 and -1 or 1), y + y_offs)
+                            if math.abs(x_overlap) < self.EDGE_LENIENCE and neighbour == nil then
+                                if not self.airborne then
+                                    self.x = self.x - x_overlap
+                                end
+                            else
+                                -- land on ground
+                                self.y = tile_rect.y1 + (speed_y > 0 and - self.size.y  or self.TILE_SIZE)
+                                self:_land_on_ground()
+                            end
+                        end
                     end
                 end
-                ::continue::
             end
         end
     end
