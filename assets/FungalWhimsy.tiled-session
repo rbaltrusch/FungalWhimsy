@@ -37,11 +37,11 @@
             }
         },
         "levels/level3.tmx": {
-            "scale": 2,
-            "selectedLayer": 5,
+            "scale": 0.75,
+            "selectedLayer": 4,
             "viewCenter": {
-                "x": 372,
-                "y": 671.5
+                "x": 713.3333333333333,
+                "y": 262.6666666666667
             }
         },
         "quick_tilesheet.tsx": {
