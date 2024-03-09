@@ -83,7 +83,7 @@ local function init_player()
         landing_particle_system=ParticleSystem.construct({
             x = 0,
             y = 0,
-            colour = Colour.construct(1, 1, 1, 0.2),
+            colour = Colour.construct(255, 255, 255, 0.5),
             size = 1,
             size_change = 2.5, -- per sec
             spawn_chance = 100,  -- per sec
@@ -96,7 +96,7 @@ local function init_player()
         walking_particle_system=ParticleSystem.construct({
             x = 0,
             y = 0,
-            colour = Colour.construct(1, 1, 1, 0.2),
+            colour = Colour.construct(255, 255, 255, 0.5),
             size = 1,
             size_change = 1.5, -- per sec
             spawn_chance = 20,  -- per sec
