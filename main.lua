@@ -212,7 +212,7 @@ local function check_interactible_collisions()
         -- print(player_rect.x1, player_rect.x2, player_rect.y1, player_rect.y2, tile.rect.x1, tile.rect.x2, tile.rect.y1, tile.rect.y2)
         if Collision.colliding(player_rect, tile.rect) then
             if tile.tile.index == JUMP_PAD then
-                local factor = love.keyboard.isDown("space") and 3 or 2  -- jump higher with space
+                local factor = love.keyboard.isDown("space") and 3.2 or 2.1  -- jump higher with space
                 -- force jump by resetting all jump vars
                 player.jump_timer:stop()
                 player.stun_timer:stop()

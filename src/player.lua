@@ -54,11 +54,11 @@ function Player.construct(args)
         JUMP_SPEED = 770,
         DASH_SPEED = 250,
         EDGE_LENIENCE = 7,  -- how forgiving terrain edge collisions are
-        GRAVITY = 145,
+        GRAVITY = 120,
         airborne_time = 0,
         MIN_AIRBORNE_TIME = 0.1,
         jump_height_reached = 0,
-        max_jump_height = 36,
+        max_jump_height = 100, -- 36,
         jump_factor = 1,
         dash_factor = 1,
         dash_type = nil,
