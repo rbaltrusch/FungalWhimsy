@@ -46,19 +46,19 @@ function Player.construct(args)
         idle = false,
         dying = false,
         idle_timer = args.idle_timer,
-        jump_update_timer = Timer.construct(0.4),
+        jump_update_timer = Timer.construct(0.212),
         dash_update_timer = Timer.construct(0.192),
         landing_particle_system = args.landing_particle_system,
         walking_particle_system = args.walking_particle_system,
         JUMP_DECAY = 37,  -- how fast jump speed drops
-        JUMP_SPEED = 770,
+        JUMP_SPEED = 591,
         DASH_SPEED = 250,
         EDGE_LENIENCE = 7,  -- how forgiving terrain edge collisions are
         GRAVITY = 120,
         airborne_time = 0,
         MIN_AIRBORNE_TIME = 0.1,
         jump_height_reached = 0,
-        max_jump_height = 100, -- 36,
+        max_jump_height = args.max_jump_height,
         jump_factor = 1,
         dash_factor = 1,
         dash_type = nil,
@@ -122,17 +122,16 @@ function Player.construct(args)
             self.dash_factor = 1.9
         end
 
-        self.jump_update_timer:start()
         self.max_jump_height = max_jump_height
         self.jump_factor = factor
         self.jump_sound:play()
-        self.jump_counter = 0
-        self.speed_y = - self.JUMP_SPEED
+        self.speed_y = 0-- - self.JUMP_SPEED
         self.airborne = true
         self.airborne_time = 0
         self.jumping = true
         self.jump_height_reached = 0
         self.jump_timer:start()
+        self.jump_update_timer:start()
     end
 
     ---@param dash_type string

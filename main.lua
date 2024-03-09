@@ -34,7 +34,7 @@ local function load_sound(filename, volume)
 end
 
 local function init_player()
-    PLAYER_JUMP_HEIGHT = 36
+    PLAYER_JUMP_HEIGHT = 51
     local death_sound = load_sound("assets/death.wav")
     death_sound:setPitch(3)
 
