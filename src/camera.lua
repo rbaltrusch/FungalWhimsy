@@ -27,16 +27,24 @@ local function update(self, player, dt)
     self.total_y = self.total_y + self.y
 end
 
+local function reset(self, x, y)
+    self.x = x or 0
+    self.y = y or 0
+    self.total_x = self.x - self.width / 2
+    self.total_y = self.y - self.height / 2
+end
+
 function Camera.construct(args)
     return {
         x = args.x,
         y = args.y,
-        total_x = 0,
-        total_y = 0,
+        total_x = args.x - args.width / 2,
+        total_y = args.y - args.height / 2,
         speed_factor = args.speed_factor,
         width = args.width,
         height = args.height,
         enabled = true,
-        update = update
+        update = update,
+        reset = reset,
     }
 end

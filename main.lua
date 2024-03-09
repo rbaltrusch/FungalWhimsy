@@ -119,6 +119,7 @@ local function load_tilemap(tilemap_name)
     player:set_checkpoint()
     player:move(1, 0) -- HACK for gravity fix if starting by standing on ground
     player:update_collisions(tiles["terrain"])
+    camera:reset(player_rect.x1, player_rect.y1)
 end
 
 function love.load(_, _, restart)
@@ -171,9 +172,9 @@ function love.load(_, _, restart)
     current_tilemap_index = 1
     tilemaps = {"assets/levels/level1", "assets/levels/level2", "assets/levels/level3"}
     tileset = SpriteSheet.load_sprite_sheet("assets/tilesheet.png", TILE_SIZE, TILE_SIZE, 1)
+    camera = Camera.construct{x=0, y=0, speed_factor=2.5, width=WIDTH/DEFAULT_SCALING, height=HEIGHT/DEFAULT_SCALING}
     load_tilemap(tilemaps[current_tilemap_index])
 
-    camera = Camera.construct{x=0, y=0, speed_factor=2.5, width=WIDTH/DEFAULT_SCALING, height=HEIGHT/DEFAULT_SCALING}
     font = love.graphics.newFont("assets/KenneyPixel.ttf")
     font:setFilter("nearest", "nearest")
     shader = love.graphics.newShader(require("src/shader"))
