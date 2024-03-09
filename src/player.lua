@@ -46,13 +46,13 @@ function Player.construct(args)
         idle = false,
         dying = false,
         idle_timer = args.idle_timer,
+        jump_update_timer = Timer.construct(0.4),
+        dash_update_timer = Timer.construct(0.192),
         landing_particle_system = args.landing_particle_system,
         walking_particle_system = args.walking_particle_system,
         JUMP_DECAY = 37,  -- how fast jump speed drops
         JUMP_SPEED = 770,
         DASH_SPEED = 250,
-        jump_counter = 0,
-        dash_counter = 0,
         EDGE_LENIENCE = 7,  -- how forgiving terrain edge collisions are
         GRAVITY = 145,
         airborne_time = 0,
@@ -122,13 +122,14 @@ function Player.construct(args)
             self.dash_factor = 1.9
         end
 
+        self.jump_update_timer:start()
         self.max_jump_height = max_jump_height
         self.jump_factor = factor
         self.jump_sound:play()
         self.jump_counter = 0
-        -- self.speed_y = - self.SPEED * 8
         self.speed_y = - self.JUMP_SPEED
         self.airborne = true
+        self.airborne_time = 0
         self.jumping = true
         self.jump_height_reached = 0
         self.jump_timer:start()
@@ -143,11 +144,11 @@ function Player.construct(args)
         self.dash_sound:play()
         self.dashing = true
         self.dash_factor = 1
-        self.dash_counter = 0
         self.dash_positions = {{self.x, self.y}}
         self.dash_looking_right = self.looking_right
         self.dash_timer:start()
         self.dash_type = dash_type
+        self.dash_update_timer:start()
     end
 
     function player.set_dash_speed(self)
@@ -166,9 +167,8 @@ function Player.construct(args)
         end
 
         self:set_dash_speed()
-        self.dash_counter = self.dash_counter + 1
         self.dash_positions[#self.dash_positions + 1] = {self.x, self.y}
-        if self.dash_counter > 25 then
+        if self.dash_update_timer:is_expired() then
             self.dash_positions = {}
             self.dashing = false
             self.speed_x = 0
@@ -181,9 +181,9 @@ function Player.construct(args)
             return
         end
 
-        self.jump_counter = self.jump_counter + 1
-        self.speed_y = - self.JUMP_SPEED * math.pow(0.5, self.jump_counter / 5) * self.jump_factor
-        if self.jump_counter > 30 then
+        local completion = self.jump_update_timer.time / self.jump_update_timer.delay
+        self.speed_y = - self.JUMP_SPEED * math.pow(2, -6 * completion) * self.jump_factor
+        if self.jump_update_timer:is_expired() then
             self.speed_y = 0
             self.jumping = false
         end
@@ -220,6 +220,8 @@ function Player.construct(args)
         self.coyote_timer:update(dt)
         self.idle_timer:update(dt)
         self.stun_timer:update(dt)
+        self.jump_update_timer:update(dt)
+        self.dash_update_timer:update(dt)
         self:update_jump()
         self:update_dash()
         self:update_gravity()
