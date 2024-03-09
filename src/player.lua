@@ -285,6 +285,15 @@ function Player.construct(args)
         }
     end
 
+    function player.get_spike_rect(self)
+        local player_rect = self:get_rect()
+        player_rect.x1 = player_rect.x1 + 2
+        player_rect.x2 = player_rect.x2 - 2
+        player_rect.y1 = player_rect.y1 + 3
+        player_rect.y2 = player_rect.y2 - 3
+        return player_rect
+    end
+
     function player.set_checkpoint(self, x, y)
         self.checkpoint = {x = x or self.x, y = y or self.y}
     end

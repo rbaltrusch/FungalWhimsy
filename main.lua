@@ -226,7 +226,7 @@ local function check_interactible_collisions()
 end
 
 local function check_spike_collisions()
-    local player_rect = player:get_rect()
+    local player_rect = player:get_spike_rect()
     local collectibles = TileMap.get_tile_rects(tiles["spikes"].tiles, TILE_SIZE)
     for pos, tile in pairs(collectibles) do
         if tile.tile.index == FLAT_SPIKES then -- smaller hitbox (only 4 pixels wide instead of 16)
@@ -372,6 +372,14 @@ local function draw()
     player:render(camera)
 
     love.graphics.setShader() --reset
+
+    if DEBUG_ENABLED then
+        local r, g, b, a = love.graphics.getColor()
+        love.graphics.setColor({1, 0, 0})
+        local rect = player:get_spike_rect()
+        love.graphics.rectangle("line", rect.x1 - camera.total_x, rect.y1 - camera.total_y, rect.x2 - rect.x1, rect.y2 - rect.y1)
+        love.graphics.setColor(r, g, b, a)
+    end
 
     love.graphics.setFont(font)
 
