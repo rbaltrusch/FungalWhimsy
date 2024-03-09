@@ -46,5 +46,9 @@ local function colliding(rect1, rect2)
 end
 
 function Collision.colliding(rect1, rect2)
+    -- early exit for optimization
+    if rect1.x2 <= rect2.x1 or rect1.x1 >= rect2.x2 or rect1.y2 <= rect2.y1 or rect1.y1 >= rect2.y2 then
+        return false
+    end
     return colliding(rect1, rect2) or colliding(rect2, rect1)
 end

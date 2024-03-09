@@ -143,7 +143,7 @@ function love.load(_, _, restart)
     DASH_REFRESH_RESET_TIME = 2.5
     BACKGROUND_COLOUR = Colour.construct(0, 0, 0)
     background_image = love.graphics.newImage("assets/background.png")
-    background_mushroom = love.graphics.newImage("assets/large_mushroom_with_ground.png")
+    background_mushroom = love.graphics.newSpriteBatch(love.graphics.newImage("assets/large_mushroom_with_ground.png"))
     background_entities = {{32, 125, 133}, {32, 95, 52}, {25, 34, -48}, {24, 317, 165}, {20, 45, 22}, {19, 226, 159}, {18, 53, 170}, {17, 349, 12}, {16, 316, 69}, 
     {16, 204, -34}, {15, 328, 112}, {11, 172, 45}, {9, 174, 190}, {8, -46, 246}, {8, -46, -41}}
     TILE_SIZE = 16
@@ -177,6 +177,7 @@ function love.load(_, _, restart)
 
     font = love.graphics.newFont("assets/KenneyPixel.ttf")
     font:setFilter("nearest", "nearest")
+    love.graphics.setFont(font)
     shader = love.graphics.newShader(require("src/shader"))
 end
 
@@ -225,14 +226,21 @@ local function check_interactible_collisions()
 end
 
 local function check_spike_collisions()
-    local player_rect = player:get_spike_rect()
-    local collectibles = TileMap.get_tile_rects(tiles["spikes"].tiles, TILE_SIZE)
-    for pos, tile in pairs(collectibles) do
-        if tile.tile.index == FLAT_SPIKES then -- smaller hitbox (only 4 pixels wide instead of 16)
-            tile.rect.y1 = tile.rect.y1 + (TILE_SIZE - 4)
-        end
-        if Collision.colliding(player_rect, tile.rect) then
-            player:die()
+    local player_rect = player:get_rect()
+    local x, y = player:get_current_bottom_tile()
+    for x_offs = -1, 1 do
+        for y_offs = -2, 1 do
+            ---@diagnostic disable-next-line: undefined-field
+            local tile = tiles["spikes"]:get(x + x_offs, y + y_offs)
+            if tile ~= nil then
+                local tile_rect = TileMap.get_tile_rect(x + x_offs, y + y_offs, TILE_SIZE)
+                if tile.index == FLAT_SPIKES then -- smaller hitbox (only 4 pixels wide instead of 16)
+                    tile_rect.y1 = tile_rect.y1 + (TILE_SIZE - 4)
+                end
+                if Collision.colliding(player_rect, tile_rect) then
+                    player:die()
+                end
+            end
         end
     end
 end
@@ -337,6 +345,16 @@ local function draw_win_screen(width, height, scaling)
     love.graphics.print(text, middle_x - text_width/2, middle_y + offset, 0, 1, 1)
 end
 
+local function draw_background()
+    love.graphics.draw(background_image, love.math.newTransform())
+    background_mushroom:clear()
+    for _, position in ipairs(background_entities) do
+        local factor, x, y = unpack(position)
+        background_mushroom:add(x - camera.total_x / factor, y - camera.total_y / factor, 0, 2, 2)
+    end
+    love.graphics.draw(background_mushroom)
+end
+
 local function draw()
     local scaling = love.window.getFullscreen() and MAX_SCALING or DEFAULT_SCALING
     love.graphics.scale(scaling, scaling)
@@ -356,18 +374,14 @@ local function draw()
     shader:send("u_offset", math.min(0.5, completed_since / 8))
     love.graphics.setShader(shader)
     love.graphics.setBackgroundColor(unpack(BACKGROUND_COLOUR))
-    love.graphics.draw(background_image, love.math.newTransform())
-    for _, position in ipairs(background_entities) do
-        local factor, x, y = unpack(position)
-        love.graphics.draw(background_mushroom, love.math.newTransform(x - camera.total_x / factor, y - camera.total_y / factor, 0, 2, 2))
-    end
+    draw_background()
 
     local x_offset = math.sin(love.timer.getTime() * 5) * 1.5
-    TileMap.render(tiles["terrain"].tiles, tileset, camera, TILE_SIZE)
-    TileMap.render(tiles["checkpoints"].tiles, tileset, camera, TILE_SIZE)
-    TileMap.render(tiles["interactibles"].tiles, tileset, camera, TILE_SIZE)
-    TileMap.render(tiles["spikes"].tiles, tileset, camera, TILE_SIZE, 0, 5)
-    TileMap.render(tiles["collectibles"].tiles, tileset, camera, TILE_SIZE, x_offset)
+    TileMap.render(tiles["terrain"].tiles, tileset, camera, TILE_SIZE, WIDTH, HEIGHT)
+    TileMap.render(tiles["checkpoints"].tiles, tileset, camera, TILE_SIZE, WIDTH, HEIGHT)
+    TileMap.render(tiles["interactibles"].tiles, tileset, camera, TILE_SIZE, WIDTH, HEIGHT)
+    TileMap.render(tiles["spikes"].tiles, tileset, camera, TILE_SIZE, WIDTH, HEIGHT, 0, 5)
+    TileMap.render(tiles["collectibles"].tiles, tileset, camera, TILE_SIZE, WIDTH, HEIGHT, x_offset)
     player:render(camera)
 
     love.graphics.setShader() --reset
@@ -379,8 +393,6 @@ local function draw()
         love.graphics.rectangle("line", rect.x1 - camera.total_x, rect.y1 - camera.total_y, rect.x2 - rect.x1, rect.y2 - rect.y1)
         love.graphics.setColor(r, g, b, a)
     end
-
-    love.graphics.setFont(font)
 
     -- speed run timer
     if not won then
@@ -404,11 +416,11 @@ function love.update(dt)
             print(i)
         end
     end
-    ErrorUtil.call_or_exit(function() update(dt) end, not DEBUG_ENABLED)
+    update(dt)
 end
 
 function love.draw()
-    ErrorUtil.call_or_exit(draw, not DEBUG_ENABLED)
+    draw()
 end
 
 function love.mousepressed()

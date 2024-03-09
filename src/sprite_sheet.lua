@@ -10,5 +10,5 @@ function SpriteSheet.load_sprite_sheet(filepath, width, height, padding)
             table.insert(quads, love.graphics.newQuad(x, y, width, height, image:getDimensions()))
         end
     end
-    return {image = image, quads = quads, size = #quads}
+    return {image = image, quads = quads, size = #quads, sprite_batch = love.graphics.newSpriteBatch(image)}
 end
