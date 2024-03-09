@@ -103,15 +103,14 @@ function TileMap.render_tiles(tiles, tileset, camera, tilesize, width, height, y
     end
 end
 
-function TileMap.render(tiles, tileset, camera, tilesize, y_offset, skip_index)
+function TileMap.render(tiles, tileset, camera, tilesize, width, height, y_offset, skip_index)
     y_offset = y_offset or 0
     for x, col in pairs(tiles) do
         for y, tile in pairs(col) do
-            if tile.index ~= skip_index and not tile.collected then
-
-                local transform = love.math.newTransform(
-                    x * tilesize - camera.total_x, y * tilesize - camera.total_y + y_offset
-                )
+            local x_transform = x * tilesize - camera.total_x
+            local y_transform = y * tilesize - camera.total_y + y_offset
+            local transform = love.math.newTransform(x_transform, y_transform)
+            if tile.index ~= skip_index and not tile.collected and x_transform < width and y_transform < height then
                 love.graphics.draw(tileset.image, tile.quad, transform)
             end
         end
