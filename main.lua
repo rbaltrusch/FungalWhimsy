@@ -147,6 +147,7 @@ function love.load(_, _, restart)
     {16, 204, -34}, {15, 328, 112}, {11, 172, 45}, {9, 174, 190}, {8, -46, 246}, {8, -46, -41}}
     TILE_SIZE = 16
     DEBUG_ENABLED = false
+    NUKE_FPS = false
     DEFAULT_SCALING = 2
     WIDTH, HEIGHT = 600, 450
     WIN_WIDTH, WIN_HEIGHT = love.window.getDesktopDimensions()
@@ -397,6 +398,11 @@ local function draw()
 end
 
 function love.update(dt)
+    if NUKE_FPS then
+        for i = 0, 50 do
+            print(i)
+        end
+    end
     ErrorUtil.call_or_exit(function() update(dt) end, not DEBUG_ENABLED)
 end
 
