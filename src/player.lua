@@ -182,7 +182,7 @@ function Player.construct(args)
         end
 
         local completion = self.jump_update_timer.time / self.jump_update_timer.delay
-        self.speed_y = - self.JUMP_SPEED * math.pow(2, -6 * completion) * self.jump_factor
+        self.speed_y = - self.JUMP_SPEED * math.pow(2, -4 * completion) * self.jump_factor
         if self.jump_update_timer:is_expired() then
             self.speed_y = 0
             self.jumping = false
