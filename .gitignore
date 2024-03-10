@@ -12,3 +12,4 @@ node_modules/
 webbuild/
 package.json
 package-lock.json
+**/__pycache__/
