@@ -123,17 +123,9 @@ local function load_tilemap(tilemap_name)
 end
 
 function love.load(_, _, restart)
-    JUMP_PAD = 21
-    PORTAL = 22
-    WIN_FLAG = 10
-    DASH_REFRESH = 23
-    STAR = 25
-    FLAT_SPIKES = 17
-
     started = restart and true or false -- for title screen rendering at startup
     completed_since = 0
     completion_time = 0
-    MAX_STARS = 9 -- TODO
     player_death_icon = love.graphics.newImage("assets/player_death_icon.png")
     player_death_icon:setFilter("nearest", "nearest")
 
@@ -146,11 +138,6 @@ function love.load(_, _, restart)
     background_mushroom = love.graphics.newSpriteBatch(love.graphics.newImage("assets/large_mushroom_with_ground.png"))
     background_entities = {{32, 125, 133}, {32, 95, 52}, {25, 34, -48}, {24, 317, 165}, {20, 45, 22}, {19, 226, 159}, {18, 53, 170}, {17, 349, 12}, {16, 316, 69}, 
     {16, 204, -34}, {15, 328, 112}, {11, 172, 45}, {9, 174, 190}, {8, -46, 246}, {8, -46, -41}}
-    TILE_SIZE = 16
-    DEBUG_ENABLED = false
-    NUKE_FPS = false
-    DEFAULT_SCALING = 2
-    WIDTH, HEIGHT = 600, 450
     WIN_WIDTH, WIN_HEIGHT = love.window.getDesktopDimensions()
     MAX_SCALING = DEFAULT_SCALING * math.min(WIN_WIDTH / WIDTH, WIN_HEIGHT / HEIGHT)
     love.window.setIcon(love.image.newImageData("assets/player_icon.png"))
