@@ -42,7 +42,7 @@ def main():
     for filename in os.listdir(LOVE_DIR):
         if filename.endswith(".dll") or filename.startswith("license"):
             shutil.copyfile(LOVE_DIR / filename, build_dir / filename)
-    shutil.make_archive(f"{build_dir}.zip", "zip", build_dir)
+    shutil.make_archive(str(build_dir), "zip", build_dir)
 
 
 if __name__ == "__main__":
