@@ -429,7 +429,7 @@ function love.keypressed(key)
     elseif key == "m" then
         muted = not muted
         love.audio.setVolume(muted and 0 or 1)
-    elseif key == "escape" then
+    elseif key == "escape" and not IS_WEB then
         love.event.quit(0)
     end
 
