@@ -13,3 +13,5 @@ webbuild/
 package.json
 package-lock.json
 **/__pycache__/
+**/desktop.ini
+**/*.tiled-session
