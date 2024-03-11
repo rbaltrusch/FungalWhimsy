@@ -6,8 +6,10 @@ from typing import List, Tuple
 from build import main as build_game
 from build import GAME
 
-TITLE = "Fungal Whimsy"
+TITLE = "Myrkur"
 WEB_BUILD_DIR = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else "webbuild")
+BACKGROUND_COLOUR = "#222034"
+TEXT_COLOUR = "#df7126"
 
 
 def replace_string(filepath: pathlib.Path, replacements: List[Tuple[str, str]]) -> None:
@@ -28,10 +30,10 @@ def main():
             WEB_BUILD_DIR / "index.html",
             [
                 ("<h1>-&#x3D;</h1>", ""),
-                ('loadingContext.fillStyle = "rgb(142, 195, 227)";', 'loadingContext.fillStyle = "#222034";'),
+                ('loadingContext.fillStyle = "rgb(142, 195, 227)";', f'loadingContext.fillStyle = "{BACKGROUND_COLOUR}";'),
                 (
                     'loadingContext.fillStyle = "rgb( 11, 86, 117 )";',
-                    'loadingContext.fillStyle = "#df7126";',
+                    f'loadingContext.fillStyle = "{TEXT_COLOUR}";',
                 ),
                 (
                     '<canvas id="loadingCanvas" oncontextmenu="event.preventDefault()" width="800" height="600"></canvas>',
@@ -49,7 +51,7 @@ def main():
                 ("background-image: url(bg.png);", ""),
                 (
                     "background-color: rgb( 154, 205, 237 );",
-                    "background-color: #222034;",
+                    f"background-color: {BACKGROUND_COLOUR};",
                 ),
             ],
         )
